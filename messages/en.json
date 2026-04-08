@@ -1,0 +1,105 @@
+{
+	"common": {
+		"brandName": "Aquacanvas",
+		"tagline": "Transform your photos into art",
+		"loading": "Loading…",
+		"save": "Save",
+		"cancel": "Cancel",
+		"delete": "Delete",
+		"confirm": "Confirm",
+		"back": "Back",
+		"next": "Next",
+		"submit": "Submit",
+		"close": "Close",
+		"learnMore": "Learn more",
+		"getStarted": "Get started",
+		"skipToContent": "Skip to main content"
+	},
+	"nav": {
+		"home": "Home",
+		"create": "Create",
+		"gallery": "Gallery",
+		"pricing": "Pricing",
+		"login": "Log in",
+		"register": "Sign up",
+		"dashboard": "Dashboard",
+		"logout": "Log out"
+	},
+	"hero": {
+		"title": "Turn Your Photos Into Stunning Art",
+		"subtitle": "Upload a photo, choose a style, and watch AI transform it into a beautiful piece of art you can order as a print.",
+		"cta": "Create your artwork",
+		"secondaryCta": "See examples"
+	},
+	"shop": {
+		"uploadPhoto": "Upload your photo",
+		"chooseStyle": "Choose a style",
+		"preview": "Preview your artwork",
+		"orderPrint": "Order print",
+		"dragDrop": "Drag & drop your photo here",
+		"orBrowse": "or click to browse",
+		"supportedFormats": "JPG, PNG, WebP — up to 10 MB",
+		"removeImage": "Remove image",
+		"meta": {
+			"title": "Create Your Artwork — Aquacanvas",
+			"description": "Upload a photo and transform it into stunning art with AI. Choose from watercolor, oil painting, and more styles."
+		}
+	},
+	"auth": {
+		"loginTitle": "Welcome back",
+		"loginSubtitle": "Sign in to your Aquacanvas account",
+		"registerTitle": "Create your account",
+		"registerSubtitle": "Start creating beautiful art today",
+		"email": "Email",
+		"password": "Password",
+		"confirmPassword": "Confirm password",
+		"forgotPassword": "Forgot password?",
+		"loginButton": "Sign in",
+		"registerButton": "Create account",
+		"noAccount": "Don't have an account?",
+		"hasAccount": "Already have an account?",
+		"orContinueWith": "Or continue with"
+	},
+	"dashboard": {
+		"title": "My Orders",
+		"noOrders": "You haven't created any artwork yet.",
+		"createFirst": "Create your first artwork",
+		"orderStatus": {
+			"created": "Created",
+			"processing": "Processing",
+			"generated": "Generated",
+			"paid": "Paid",
+			"shipped": "Shipped"
+		}
+	},
+	"footer": {
+		"copyright": "© {year} Aquacanvas. All rights reserved.",
+		"privacy": "Privacy Policy",
+		"terms": "Terms of Service",
+		"contact": "Contact"
+	},
+	"metadata": {
+		"homeTitle": "Aquacanvas — Transform Your Photos Into Art",
+		"homeDescription": "AI-powered photo-to-art platform. Upload a photo, choose an art style, and order stunning prints.",
+		"loginTitle": "Sign In — Aquacanvas",
+		"registerTitle": "Sign Up — Aquacanvas"
+	},
+	"errors": {
+		"generic": "Something went wrong. Please try again.",
+		"notFound": "Not found.",
+		"unauthorized": "You must be logged in to do this.",
+		"forbidden": "You don't have permission to do this.",
+		"fileTooLarge": "File is too large. Maximum size is {maxSize} MB.",
+		"invalidFileType": "Invalid file type. Supported: JPG, PNG, WebP.",
+		"orderNotFound": "Order not found.",
+		"paymentFailed": "Payment failed. Please try again.",
+		"rateLimited": "Too many requests. Please wait a moment."
+	},
+	"styles": {
+		"watercolor": "Watercolor",
+		"oilPainting": "Oil Painting",
+		"charcoalSketch": "Charcoal Sketch",
+		"anime": "Anime",
+		"impressionism": "Impressionism"
+	}
+}

@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+/*
+ * Aquacanvas Design Tokens
+ * Source of truth: brand_assets/DESIGN.md
+ * Theme: "Digital Atelier" — dark default, light via class toggle
+ */
+
+/* ───── Light theme (base) ───── */
+:root {
+  --surface: #fafbfc;
+  --surface-dim: #fafbfc;
+  --surface-container-low: #f5f6f8;
+  --surface-container: #eef0f4;
+  --surface-container-high: #e8eaef;
+  --surface-container-highest: #e0e3ea;
+
+  --foreground: #1a1e2a;
+  --muted-foreground: #6b7085;
+
+  --brand: #3a9aab;
+  --brand-container: #2d8a99;
+  --on-brand: #ffffff;
+
+  --secondary-container: #ede8f5;
+  --on-secondary-container: #4a3580;
+
+  --tertiary: #0891b2;
+
+  --outline-variant: #d1d5e0;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --success: #16a34a;
+  --warning: #d97706;
+
+  --ring: #0891b2;
+  --radius: 0.75rem;
+
+  --hero-gradient-start: #f0f4ff;
+  --hero-gradient-mid: #e8f0fe;
+  --hero-gradient-end: #f5f0ff;
+}
+
+/* ───── Dark theme (default) ───── */
+.dark {
+  --surface: #0c0f14;
+  --surface-dim: #0c0f14;
+  --surface-container-low: #121620;
+  --surface-container: #1a1e2a;
+  --surface-container-high: #222736;
+  --surface-container-highest: #2a3044;
+
+  --foreground: #f0f0f5;
+  --muted-foreground: #8a8fa0;
+
+  --brand: #5eb5c4;
+  --brand-container: #4a9fad;
+  --on-brand: #0c2a30;
+
+  --secondary-container: #2a1f4e;
+  --on-secondary-container: #c9b8f0;
+
+  --tertiary: #7dd3fc;
+
+  --outline-variant: #3a3f52;
+
+  --destructive: #f87171;
+  --destructive-foreground: #1a1e2a;
+  --success: #4ade80;
+  --warning: #fbbf24;
+
+  --ring: #7dd3fc;
+
+  --hero-gradient-start: #0c0f14;
+  --hero-gradient-mid: #121a2e;
+  --hero-gradient-end: #1a1f4e;
+}
+
+/* ───── Tailwind v4 theme mapping ───── */
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-brand: var(--brand);
+  --color-brand-container: var(--brand-container);
+  --color-on-brand: var(--on-brand);
+
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+
+  --color-tertiary: var(--tertiary);
+
+  --color-outline-variant: var(--outline-variant);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+
+  --color-ring: var(--ring);
+
+  --radius-xl: 0.75rem;
+  --radius-lg: 0.5rem;
+  --radius-md: 0.375rem;
+
+  --font-heading: var(--font-dm-sans);
+  --font-sans: var(--font-manrope);
+
+  --color-hero-gradient-start: var(--hero-gradient-start);
+  --color-hero-gradient-mid: var(--hero-gradient-mid);
+  --color-hero-gradient-end: var(--hero-gradient-end);
+}
+
+/* ───── Base styles ───── */
+body {
+  background: var(--surface);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* ───── Focus styles ───── */
+*:focus-visible {
+  outline: 2px solid var(--tertiary);
+  outline-offset: 2px;
+}
+
+/* ───── Reduced motion ───── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ───── Skip to content (a11y) ───── */
+.skip-to-content {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.skip-to-content:focus {
+  left: 1rem;
+  top: 1rem;
+  width: auto;
+  height: auto;
+  padding: 0.75rem 1.5rem;
+  background: var(--brand);
+  color: var(--on-brand);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+}
+
+/* ───── Selection ───── */
+::selection {
+  background: var(--brand);
+  color: var(--on-brand);
+}
+
+/* ───── Scrollbar (subtle) ───── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--surface-container-highest);
+}
