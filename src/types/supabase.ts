@@ -376,6 +376,10 @@ export interface Database {
 				Args: Record<string, never>
 				Returns: boolean
 			}
+			increment_discount_uses: {
+				Args: { discount_id: string }
+				Returns: undefined
+			}
 		}
 		Enums: {
 			order_status: OrderStatus
