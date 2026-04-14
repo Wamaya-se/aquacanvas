@@ -48,7 +48,7 @@ export async function createDiscountCode(
 		})
 
 		const promo = await stripe.promotionCodes.create({
-			coupon: coupon.id,
+			promotion: { type: 'coupon', coupon: coupon.id },
 			code: parsed.data.code,
 			...(parsed.data.maxUses ? { max_redemptions: parsed.data.maxUses } : {}),
 			...(parsed.data.expiresAt ? { expires_at: Math.floor(new Date(parsed.data.expiresAt).getTime() / 1000) } : {}),

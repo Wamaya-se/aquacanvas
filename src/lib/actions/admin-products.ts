@@ -174,7 +174,7 @@ export async function createProduct(
 	try {
 		const imageFields = ['heroImageUrl', 'exampleBefore', 'exampleAfter'] as const
 		const dbColumns = ['hero_image_url', 'example_before', 'example_after'] as const
-		const updates: Record<string, string | null> = {}
+		const updates: Partial<Record<'hero_image_url' | 'example_before' | 'example_after', string | null>> = {}
 
 		for (let i = 0; i < imageFields.length; i++) {
 			const result = await uploadImageField(supabase, formData, imageFields[i], data.id, null)
