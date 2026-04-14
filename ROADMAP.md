@@ -1,6 +1,6 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-10 (Fas 8 pågår — canvas klart) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-14 (Deployed to production) | Format: compact, token-efficient. Update after each session.
 
 ## Completed
 
@@ -128,6 +128,18 @@
 - [ ] Fler produktformat: inramad poster, vykort (framtida)
 - [ ] Stilförhandsvisning: live-preview med thumbnail
 
+## Completed — Deployment
+
+- [x] GitHub repo: Wamaya-se/aquacanvas (public)
+- [x] Supabase cloud project (EU West): migreringar + seed data pushade
+- [x] Vercel deploy: https://aquacanvas.vercel.app (auto-deploy från main)
+- [x] Environment variables: Supabase, Kie.ai, site URL konfigurerade i Vercel
+- [x] Build-fix: Stripe SDK v22 API-ändring, Supabase RPC-typer, Suspense boundary
+- [ ] Supabase Auth URL Configuration: site_url + redirect URL (manuellt i dashboard)
+- [ ] Stripe-nycklar i Vercel (STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET)
+- [ ] Resend API-nyckel i Vercel (RESEND_API_KEY)
+- [ ] Egen domän (valfritt)
+
 ## Fas 9: Auth & GDPR (framtida, om kundkonton aktiveras)
 
 - [ ] Kundregistrering (reaktivera)
@@ -139,6 +151,7 @@
 
 ## Fas 10: Polish & Produktion
 
+- [x] Initial production deploy (Vercel + Supabase Cloud)
 - [ ] Responsiv polish-pass
 - [ ] Performance-pass (lazy loading, image optimization, cache)
 - [ ] Monitoring: Sentry, uptime
@@ -166,3 +179,5 @@ Storage: `images` bucket (10 MB limit, jpeg/png/webp) + `products/` folder for p
 Auth flows: email/password login (admin only), session refresh via middleware, callback route for OAuth
 Payments: Stripe Checkout (redirect), webhook at /api/webhooks/stripe, SEK currency, Promotion Codes/Coupons for discounts
 Email: Resend (order confirmation, admin notification, shipped notification)
+Hosting: Vercel (https://aquacanvas.vercel.app), Supabase Cloud (EU West — xinnmqappqywcgzexapg)
+Repo: github.com/Wamaya-se/aquacanvas (public)

@@ -1,7 +1,7 @@
 # Aquacanvas — Tech Stack
 
-> **Senast uppdaterad:** 2026-04-08
-> **Status:** Beslutad
+> **Senast uppdaterad:** 2026-04-14
+> **Status:** Beslutad — deployed to production
 
 ---
 
@@ -46,9 +46,9 @@ Aquacanvas är en e-commerce-plattform som erbjuder AI-genererad konst. Kunden l
 
 | Teknologi | Syfte |
 |-----------|-------|
-| **Replicate** | AI-plattform för bildtransformation (primärt val) |
-| **Stable Diffusion (img2img)** | Modell för stiltransformation (vattenmålning, etc.) |
-| **Alternativ: OpenAI Images API** | Fallback/alternativ för bildgenerering |
+| **Kie.ai** | AI-plattform för bildtransformation (primärt val, i produktion) |
+| **google/nano-banana-edit** | Modell för stiltransformation (alla 5 stilar) |
+| **Alternativ: Replicate / OpenAI Images API** | Fallback/alternativ för bildgenerering |
 
 ### AI-principer
 
@@ -61,13 +61,13 @@ Aquacanvas är en e-commerce-plattform som erbjuder AI-genererad konst. Kunden l
 
 ### Stöd för konststilar (Fas 1 → framtida)
 
-| Stil | Status | Prompt/Modell |
-|------|--------|---------------|
-| Vattenmålning | Fas 1 — MVP | img2img med watercolor-prompt |
-| Oljemålning | Framtida | img2img med oil painting-prompt |
-| Kolskiss | Framtida | img2img med charcoal sketch-prompt |
-| Anime/Manga | Framtida | Separat modell |
-| Impressionism | Framtida | Style transfer-modell |
+| Stil | Status | Pris (SEK) | Modell |
+|------|--------|------------|--------|
+| Vattenmålning | Aktiv | 349 | google/nano-banana-edit |
+| Oljemålning | Aktiv | 399 | google/nano-banana-edit |
+| Kolskiss | Aktiv | 299 | google/nano-banana-edit |
+| Anime | Aktiv | 349 | google/nano-banana-edit |
+| Impressionism | Aktiv | 399 | google/nano-banana-edit |
 
 ---
 
@@ -145,11 +145,11 @@ Aquacanvas är en e-commerce-plattform som erbjuder AI-genererad konst. Kunden l
 
 ## Deployment & Infrastruktur
 
-| Teknologi | Syfte |
-|-----------|-------|
-| **Vercel** | Hosting för Next.js — edge network, preview deploys, analytics |
-| **Supabase Cloud** | Managed databas, auth, storage, edge functions |
-| **GitHub** | Versionskontroll, CI/CD via GitHub Actions |
+| Teknologi | Syfte | URL/Info |
+|-----------|-------|----------|
+| **Vercel** | Hosting för Next.js — edge network, preview deploys, analytics | https://aquacanvas.vercel.app |
+| **Supabase Cloud** | Managed databas, auth, storage, edge functions | EU West (xinnmqappqywcgzexapg) |
+| **GitHub** | Versionskontroll, auto-deploy vid push till main | github.com/Wamaya-se/aquacanvas |
 
 ---
 
