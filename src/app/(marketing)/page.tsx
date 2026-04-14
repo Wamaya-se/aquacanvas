@@ -146,7 +146,7 @@ export default async function HomePage() {
 
 						<div className="w-full md:flex-1">
 							<BeforeAfterSlider
-								beforeSrc="/images/hero-before.png"
+								beforeSrc="/images/hero-before.jpg"
 								afterSrc="/images/hero-after.png"
 								beforeAlt="Original photo of a cabin in the snow"
 								afterAlt="AI-generated watercolor artwork of the cabin on a canvas print"

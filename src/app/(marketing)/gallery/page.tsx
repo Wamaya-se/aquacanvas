@@ -36,7 +36,7 @@ export default async function GalleryPage() {
 		{
 			title: t('example1Title'),
 			description: t('example1Desc'),
-			beforeSrc: '/images/hero-before.png',
+			beforeSrc: '/images/hero-before.jpg',
 			afterSrc: '/images/hero-after.png',
 			color: '1a1e2a/5eb5c4',
 		},
