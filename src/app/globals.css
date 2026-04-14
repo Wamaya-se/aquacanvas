@@ -3,78 +3,98 @@
 /*
  * Aquacanvas Design Tokens
  * Source of truth: brand_assets/DESIGN.md
- * Theme: "Digital Atelier" — dark default, light via class toggle
+ * Theme: "Warm Editorial" — light default, dark via class toggle
+ * Inspired by Wispr Flow branding: cream + deep teal + soft lavender
  */
 
-/* ───── Light theme (base) ───── */
+/* ───── Light theme (default) ───── */
 :root {
-  --surface: #fafbfc;
-  --surface-dim: #fafbfc;
-  --surface-container-low: #f5f6f8;
-  --surface-container: #eef0f4;
-  --surface-container-high: #e8eaef;
-  --surface-container-highest: #e0e3ea;
+  /* Surfaces — warm cream hierarchy */
+  --surface: #ffffeb;
+  --surface-dim: #ffffeb;
+  --surface-container-low: #f9f9d8;
+  --surface-container: #f2f2c4;
+  --surface-container-high: #eaeab0;
+  --surface-container-highest: #e0e09a;
 
-  --foreground: #1a1e2a;
-  --muted-foreground: #6b7085;
+  /* Text */
+  --foreground: #1a1a1a;
+  --muted-foreground: #5a5a4a;
 
-  --brand: #3a9aab;
-  --brand-container: #2d8a99;
-  --on-brand: #ffffff;
+  /* Brand — deep teal */
+  --brand: #034f46;
+  --brand-container: #025e52;
+  --on-brand: #ffffeb;
 
-  --secondary-container: #ede8f5;
-  --on-secondary-container: #4a3580;
+  /* Accent — soft lavender */
+  --accent: #f0d7ff;
+  --on-accent: #1a1a1a;
 
-  --tertiary: #0891b2;
+  /* Supporting */
+  --secondary-container: #e8d0f8;
+  --on-secondary-container: #3a1a5e;
 
-  --outline-variant: #d1d5e0;
+  --tertiary: #034f46;
 
+  --outline-variant: #c8c89a;
+
+  /* Semantic */
   --destructive: #dc2626;
   --destructive-foreground: #ffffff;
   --success: #16a34a;
   --warning: #d97706;
 
-  --ring: #0891b2;
-  --radius: 0.75rem;
+  --ring: #034f46;
 
-  --hero-gradient-start: #f0f4ff;
-  --hero-gradient-mid: #e8f0fe;
-  --hero-gradient-end: #f5f0ff;
+  /* Hero gradient — warm cream to lavender tint */
+  --hero-gradient-start: #ffffeb;
+  --hero-gradient-mid: #f8f0ff;
+  --hero-gradient-end: #f0d7ff;
 }
 
-/* ───── Dark theme (default) ───── */
+/* ───── Dark theme ───── */
 .dark {
-  --surface: #0c0f14;
-  --surface-dim: #0c0f14;
-  --surface-container-low: #121620;
-  --surface-container: #1a1e2a;
-  --surface-container-high: #222736;
-  --surface-container-highest: #2a3044;
+  /* Surfaces — warm near-black */
+  --surface: #0c0c08;
+  --surface-dim: #0c0c08;
+  --surface-container-low: #141410;
+  --surface-container: #1c1c16;
+  --surface-container-high: #24241e;
+  --surface-container-highest: #2c2c24;
 
-  --foreground: #f0f0f5;
-  --muted-foreground: #8a8fa0;
+  /* Text */
+  --foreground: #f5f5e0;
+  --muted-foreground: #9a9a80;
 
-  --brand: #5eb5c4;
-  --brand-container: #4a9fad;
-  --on-brand: #0c2a30;
+  /* Brand — lighter teal for dark bg contrast */
+  --brand: #1a9484;
+  --brand-container: #14806f;
+  --on-brand: #f5f5e0;
 
-  --secondary-container: #2a1f4e;
-  --on-secondary-container: #c9b8f0;
+  /* Accent — lavender works on dark too */
+  --accent: #f0d7ff;
+  --on-accent: #1a1a1a;
 
-  --tertiary: #7dd3fc;
+  /* Supporting */
+  --secondary-container: #2a1f3e;
+  --on-secondary-container: #d4b8f5;
 
-  --outline-variant: #3a3f52;
+  --tertiary: #4dd4c4;
 
+  --outline-variant: #3a3a28;
+
+  /* Semantic */
   --destructive: #f87171;
-  --destructive-foreground: #1a1e2a;
+  --destructive-foreground: #1a1a1a;
   --success: #4ade80;
   --warning: #fbbf24;
 
-  --ring: #7dd3fc;
+  --ring: #4dd4c4;
 
-  --hero-gradient-start: #0c0f14;
-  --hero-gradient-mid: #121a2e;
-  --hero-gradient-end: #1a1f4e;
+  /* Hero gradient — warm dark to deep teal tint */
+  --hero-gradient-start: #0c0c08;
+  --hero-gradient-mid: #0a1814;
+  --hero-gradient-end: #0f2420;
 }
 
 /* ───── Tailwind v4 theme mapping ───── */
@@ -93,6 +113,9 @@
   --color-brand-container: var(--brand-container);
   --color-on-brand: var(--on-brand);
 
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+
   --color-secondary-container: var(--secondary-container);
   --color-on-secondary-container: var(--on-secondary-container);
 
@@ -107,12 +130,14 @@
 
   --color-ring: var(--ring);
 
-  --radius-xl: 0.75rem;
-  --radius-lg: 0.5rem;
-  --radius-md: 0.375rem;
+  /* Radius — Wispr: 16px containers, 12px buttons */
+  --radius-xl: 1rem;
+  --radius-lg: 0.75rem;
+  --radius-md: 0.5rem;
 
-  --font-heading: var(--font-dm-sans);
-  --font-sans: var(--font-manrope);
+  /* Fonts */
+  --font-heading: var(--font-eb-garamond);
+  --font-sans: var(--font-figtree);
 
   --color-hero-gradient-start: var(--hero-gradient-start);
   --color-hero-gradient-mid: var(--hero-gradient-mid);
@@ -169,8 +194,8 @@ body {
 
 /* ───── Selection ───── */
 ::selection {
-  background: var(--brand);
-  color: var(--on-brand);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 /* ───── Scrollbar (subtle) ───── */

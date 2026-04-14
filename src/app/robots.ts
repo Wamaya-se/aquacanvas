@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
 		rules: {
 			userAgent: '*',
 			allow: '/',
-			disallow: ['/api/', '/dashboard/', '/admin/'],
+			disallow: ['/api/', '/admin/'],
 		},
 		sitemap: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aquacanvas.com'}/sitemap.xml`,
 	}

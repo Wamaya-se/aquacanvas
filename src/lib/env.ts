@@ -30,6 +30,44 @@ export function getStripeWebhookSecret(): string {
 	return getEnvVar('STRIPE_WEBHOOK_SECRET')
 }
 
-export function getReplicateApiToken(): string {
-	return getEnvVar('REPLICATE_API_TOKEN')
+export function getKieApiKey(): string {
+	return getEnvVar('KIE_API_KEY')
 }
+
+export function getResendApiKey(): string {
+	return getEnvVar('RESEND_API_KEY')
+}
+
+export function getAdminEmail(): string {
+	return process.env.ADMIN_NOTIFICATION_EMAIL ?? 'admin@aquacanvas.com'
+}
+
+export const env = {
+	get siteUrl() {
+		return getSiteUrl()
+	},
+	get supabaseUrl() {
+		return getSupabaseUrl()
+	},
+	get supabaseAnonKey() {
+		return getSupabaseAnonKey()
+	},
+	get supabaseServiceRoleKey() {
+		return getSupabaseServiceRoleKey()
+	},
+	get stripeSecretKey() {
+		return getStripeSecretKey()
+	},
+	get stripeWebhookSecret() {
+		return getStripeWebhookSecret()
+	},
+	get kieApiKey() {
+		return getKieApiKey()
+	},
+	get resendApiKey() {
+		return getResendApiKey()
+	},
+	get adminEmail() {
+		return getAdminEmail()
+	},
+} as const

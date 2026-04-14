@@ -1,0 +1,16 @@
+---
+description: Automatically run the quality-review skill after completing major work
+alwaysApply: true
+---
+
+# Quality Gate — Mandatory Post-Completion Review
+
+After completing a feature, multi-step task, or significant refactor (3+ files changed), **immediately** run the quality-review skill (`/.cursor/skills/quality-review/SKILL.md`) before reporting completion to the user.
+
+Do not wait for the user to ask. Do not skip it. Treat it as the final step of every major task.
+
+**Workflow:**
+1. Finish implementation
+2. Run quality-review checklist (security, a11y, SEO, i18n, code quality, config)
+3. Fix any issues found
+4. Then report to the user — include a brief QA summary with any fixes made

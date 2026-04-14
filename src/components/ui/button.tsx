@@ -10,15 +10,15 @@ const buttonVariants = cva(
 		variants: {
 			variant: {
 				brand:
-					'bg-gradient-to-r from-brand to-brand-container text-on-brand focus-visible:ring-2 focus-visible:ring-ring hover:brightness-110 active:scale-[0.97]',
+					'bg-accent text-on-accent border border-foreground hover:brightness-95 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97]',
 				secondary:
-					'bg-surface-container-highest text-brand focus-visible:ring-2 focus-visible:ring-ring hover:brightness-110 active:scale-[0.97]',
+					'bg-surface text-foreground border border-foreground hover:bg-surface-container-low focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97]',
 				ghost:
 					'text-foreground hover:bg-surface-container-high focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97]',
 				outline:
-					'border border-outline-variant/20 text-foreground hover:bg-surface-container-high focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97]',
+					'border border-outline-variant text-foreground hover:bg-surface-container-high focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.97]',
 				destructive:
-					'bg-destructive text-destructive-foreground focus-visible:ring-2 focus-visible:ring-destructive/50 hover:brightness-110 active:scale-[0.97]',
+					'bg-destructive text-destructive-foreground border border-destructive focus-visible:ring-2 focus-visible:ring-destructive/50 hover:brightness-110 active:scale-[0.97]',
 				link: 'text-brand underline-offset-4 hover:underline',
 			},
 			size: {
