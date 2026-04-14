@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { LoginForm } from '@/components/auth/login-form'
 
@@ -14,7 +15,9 @@ export default function LoginPage() {
 	return (
 		<>
 			<h1 className="sr-only">Sign In</h1>
-			<LoginForm />
+			<Suspense>
+				<LoginForm />
+			</Suspense>
 		</>
 	)
 }
