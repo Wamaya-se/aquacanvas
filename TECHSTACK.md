@@ -149,7 +149,54 @@ Aquacanvas är en e-commerce-plattform som erbjuder AI-genererad konst. Kunden l
 |-----------|-------|----------|
 | **Vercel** | Hosting för Next.js — edge network, preview deploys, analytics | https://aquacanvas.vercel.app |
 | **Supabase Cloud** | Managed databas, auth, storage, edge functions | EU West (xinnmqappqywcgzexapg) |
-| **GitHub** | Versionskontroll, auto-deploy vid push till main | github.com/Wamaya-se/aquacanvas |
+| **GitHub** | Versionskontroll, auto-deploy vid push till `main` | github.com/Wamaya-se/aquacanvas |
+
+---
+
+## Deployment & drift
+
+Detta är den **praktiska kedjan** från laptop till live — använd den när du (eller AI-assistenten) ska “pusha till GitHub/Vercel”.
+
+### Lokal utveckling
+
+1. **Klona** repot: `git clone https://github.com/Wamaya-se/aquacanvas.git`
+2. **Installera:** `npm install`
+3. **Miljö:** kopiera `.env.example` → `.env.local` och fyll i värden (Supabase URL/nycklar från Supabase Dashboard; övrigt enligt behov för Stripe, Kie.ai, Resend).
+4. **Starta:** `npm run dev` → appen på `http://localhost:3000`
+5. **Byggtest (valfritt):** `npm run build` — samma kommando som Vercel kör
+
+**Node:** version **20+** (LTS rekommenderas).
+
+### Git → GitHub → Vercel (production)
+
+1. Arbeta på branch **`main`** (eller skapa feature-branch och merga till `main` via PR).
+2. **Commit** dina ändringar: `git add` / `git commit -m "…"`
+3. **Push:** `git push origin main`
+4. **Vercel** är kopplat till GitHub-repot: varje push till `main` startar en **ny production-build** automatiskt. Ingen manuell deploy från CLI behövs i normalfallet.
+5. Följ bygget i **Vercel Dashboard** (Deployments) — vid fel, läs build-loggen där.
+
+**Preview:** push till en **annan branch** eller **pull request** ger ofta en **preview-URL** (om det är aktiverat i Vercel-projektet).
+
+### Vad som *inte* triggas av Git
+
+- **Supabase** (databas, RLS, Storage-policies, Edge Functions) är **separat** från Vercel. Kod i `supabase/migrations/` och `supabase/functions/` måste **tillämpas mot Supabase-projektet** när du ändrar schema eller functions (t.ex. `supabase link` + `supabase db push`, eller SQL i Dashboard — följ teamets vanliga rutin).
+- **Om en ändring bara rör** frontend, `public/`, texter eller i18n: räcker **Git push** — ingen Supabase-action.
+
+### Miljövariabler
+
+| Miljö | Var |
+|-------|-----|
+| **Lokal** | `.env.local` (git ignoreras — se `.env.example` för nycklar) |
+| **Vercel** | Project → **Settings → Environment Variables** (Production / Preview). Ska spegla det appen behöver i drift, t.ex. `NEXT_PUBLIC_*`, `SUPABASE_SERVICE_ROLE_KEY`, Stripe, Kie.ai, Resend. |
+
+Nya variabler i kod (`src/lib/env.ts`) måste **läggas till i Vercel** innan production fungerar.
+
+### Checklista inför “be AI pusha till live”
+
+1. `git status` — rätt filer med?
+2. `npm run build` lokalt om du ändrat mycket (fångar Next/TS-fel innan Vercel).
+3. `git commit` + `git push origin main`
+4. Vänta på grön deploy i Vercel; vid schemaändring: glöm inte **Supabase** enligt ovan.
 
 ---
 
@@ -201,6 +248,7 @@ aquacanvas/
 ├── messages/                 # i18n-filer (en.json, sv.json)
 ├── public/                   # Statiska filer
 ├── brand_assets/             # Logotyper, designfiler, DESIGN.md
+├── README.md                 # Snabbstart + länk till deploy-dokumentation
 ├── TECHSTACK.md              # (denna fil)
 ├── ROADMAP.md                # Projektstatus och sprints
 ├── CLAUDE.md                 # AI-instruktioner för projektet

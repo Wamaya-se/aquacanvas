@@ -2,6 +2,8 @@
 
 > Updated: 2026-04-14 (Deployed to production) | Format: compact, token-efficient. Update after each session.
 
+**Workflow (push till live):** `git push` till `main` → Vercel bygger automatiskt. Detaljer: **[README.md](./README.md)** och **[TECHSTACK.md — Deployment & drift](./TECHSTACK.md#deployment--drift)**. Supabase endast vid DB/functions-ändringar.
+
 ## Completed
 
 - [x] Project setup (Next.js 16.2.2, Tailwind 4, Shadcn/UI, TypeScript 5)
@@ -130,6 +132,7 @@
 
 ## Completed — Deployment
 
+- [x] Dokumentation: [README.md](./README.md) (snabbstart) + [TECHSTACK.md — Deployment & drift](./TECHSTACK.md#deployment--drift) (Git push, Vercel, Supabase, checklista)
 - [x] GitHub repo: Wamaya-se/aquacanvas (public)
 - [x] Supabase cloud project (EU West): migreringar + seed data pushade
 - [x] Vercel deploy: https://aquacanvas.vercel.app (auto-deploy från main)
