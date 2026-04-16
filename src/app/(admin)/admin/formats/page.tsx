@@ -55,6 +55,7 @@ export default async function AdminFormatsPage() {
 							<TableRow>
 								<TableHead>{t('formatName')}</TableHead>
 								<TableHead>{t('formatType')}</TableHead>
+								<TableHead>{t('formatOrientation')}</TableHead>
 								<TableHead className="text-right">{t('formatWidth')}</TableHead>
 								<TableHead className="text-right">{t('formatHeight')}</TableHead>
 								<TableHead className="text-right">{t('formatPrice')}</TableHead>
@@ -74,6 +75,9 @@ export default async function AdminFormatsPage() {
 									</TableCell>
 									<TableCell className="text-muted-foreground">
 										{format.format_type}
+									</TableCell>
+									<TableCell className="text-muted-foreground capitalize">
+										{format.orientation}
 									</TableCell>
 									<TableCell className="text-right text-muted-foreground">
 										{format.width_cm}

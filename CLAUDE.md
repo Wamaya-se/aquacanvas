@@ -69,6 +69,16 @@ Before writing code, invoke the relevant skill:
 - **No workarounds.** Solve problems the correct way. If stuck, say so.
 - **Understand before fixing.** Diagnose root cause before writing code.
 
+## Commit & Deploy Discipline
+- **One coherent unit = one commit.** A feature, bugfix, refactor, or audit batch is one commit.
+- **Commit at the end of every focused work unit.** Never let uncommitted changes pile up across sessions.
+- **Conventional commit format:** `feat(scope):`, `fix(scope):`, `fix(security):`, `chore(audit):`, `refactor(scope):`, `docs:`, `chore(deps):`.
+- **Pre-commit verification:** always run `npx tsc --noEmit && npm run lint` before committing. Never commit code that breaks typecheck.
+- **Push after commit when verified.** Vercel auto-deploys from `main` — each push is a potential prod release. Confirm with the user before pushing security fixes or breaking changes.
+- **Never end a session with uncommitted changes.** If work is partial, commit with a `wip:` prefix.
+- **Commit messages explain "why", not "what".** The diff shows what changed; the message should clarify intent.
+- **Only commit when the user explicitly asks** — but proactively *propose* commits at natural milestones.
+
 ## SEO — High Priority
 Every page must have proper metadata via `generateMetadata` using `getTranslations`. Public pages must include:
 - Unique `title` + `description` from translation files

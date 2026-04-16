@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripe } from '@/lib/stripe'
 import { getSiteUrl } from '@/lib/env'
-import { checkoutSchema } from '@/validators/order'
+import { checkoutSchema, guestSessionIdSchema } from '@/validators/order'
 import type { ActionResult } from '@/types/actions'
 
 interface CheckoutSessionData {
@@ -27,8 +27,13 @@ async function verifyOrderOwnership(
 
 	const isGuest = !user
 
-	if (isGuest && !guestSessionId) {
-		return { error: 'errors.invalidInput' as const, order: null, user: null }
+	let validGuestId: string | null = null
+	if (isGuest) {
+		const parsedGuestId = guestSessionIdSchema.safeParse(guestSessionId)
+		if (!parsedGuestId.success) {
+			return { error: 'errors.invalidInput' as const, order: null, user: null }
+		}
+		validGuestId = parsedGuestId.data
 	}
 
 	const adminDb = createAdminClient()
@@ -47,7 +52,7 @@ async function verifyOrderOwnership(
 		return { error: 'errors.forbidden' as const, order: null, user: null }
 	}
 
-	if (isGuest && order.guest_session_id !== guestSessionId) {
+	if (isGuest && order.guest_session_id !== validGuestId) {
 		return { error: 'errors.forbidden' as const, order: null, user: null }
 	}
 

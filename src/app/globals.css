@@ -46,6 +46,12 @@
 
   --ring: #034f46;
 
+  /* Shadcn-compatible aliases (bg-primary, bg-input, bg-background, etc.) */
+  --background: var(--surface);
+  --primary: var(--brand);
+  --primary-foreground: var(--on-brand);
+  --input: var(--surface-container);
+
   /* Hero gradient — warm cream to lavender tint */
   --hero-gradient-start: #ffffeb;
   --hero-gradient-mid: #f8f0ff;
@@ -91,6 +97,11 @@
 
   --ring: #4dd4c4;
 
+  --background: var(--surface);
+  --primary: var(--brand);
+  --primary-foreground: var(--on-brand);
+  --input: var(--surface-container);
+
   /* Hero gradient — warm dark to deep teal tint */
   --hero-gradient-start: #0c0c08;
   --hero-gradient-mid: #0a1814;
@@ -129,6 +140,11 @@
   --color-warning: var(--warning);
 
   --color-ring: var(--ring);
+
+  --color-background: var(--background);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-input: var(--input);
 
   /* Radius — Wispr: 16px containers, 12px buttons */
   --radius-xl: 1rem;

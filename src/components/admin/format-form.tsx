@@ -11,7 +11,9 @@ import { Switch } from '@/components/ui/switch'
 import { createFormat, updateFormat } from '@/lib/actions/admin-formats'
 import type { ActionResult } from '@/types/actions'
 
-interface FormatData {
+import type { Orientation } from '@/types/supabase'
+
+export interface FormatData {
 	id: string
 	name: string
 	slug: string
@@ -20,6 +22,7 @@ interface FormatData {
 	width_cm: number
 	height_cm: number
 	price_cents: number
+	orientation: Orientation
 	is_active: boolean
 	sort_order: number
 }
@@ -148,6 +151,20 @@ export function FormatForm({ format }: FormatFormProps) {
 						defaultValue={format ? (format.price_cents / 100).toFixed(0) : ''}
 					/>
 				</div>
+			</div>
+
+			<div className="space-y-2">
+				<Label htmlFor="orientation">{t('formatOrientation')}</Label>
+				<select
+					id="orientation"
+					name="orientation"
+					defaultValue={format?.orientation ?? 'portrait'}
+					className="flex h-10 w-full rounded-md border border-outline-variant/20 bg-surface-dim px-3 py-2 font-sans text-sm text-foreground focus:border-tertiary focus:outline-none focus:ring-1 focus:ring-tertiary"
+				>
+					<option value="portrait">{t('orientationPortrait')}</option>
+					<option value="landscape">{t('orientationLandscape')}</option>
+					<option value="square">{t('orientationSquare')}</option>
+				</select>
 			</div>
 
 			<div className="grid gap-6 sm:grid-cols-2">

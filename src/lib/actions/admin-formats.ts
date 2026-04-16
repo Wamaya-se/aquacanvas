@@ -25,6 +25,7 @@ function parseFormData(formData: FormData) {
 		widthCm: raw.widthCm,
 		heightCm: raw.heightCm,
 		priceCents: raw.priceCents,
+		orientation: raw.orientation || 'portrait',
 		isActive: raw.isActive === 'on' || raw.isActive === 'true',
 		sortOrder: raw.sortOrder || 0,
 	})
@@ -50,6 +51,7 @@ export async function createFormat(
 			width_cm: parsed.data.widthCm,
 			height_cm: parsed.data.heightCm,
 			price_cents: parsed.data.priceCents * 100,
+			orientation: parsed.data.orientation,
 			is_active: parsed.data.isActive,
 			sort_order: parsed.data.sortOrder,
 		})
@@ -95,6 +97,7 @@ export async function updateFormat(
 			width_cm: parsed.data.widthCm,
 			height_cm: parsed.data.heightCm,
 			price_cents: parsed.data.priceCents * 100,
+			orientation: parsed.data.orientation,
 			is_active: parsed.data.isActive,
 			sort_order: parsed.data.sortOrder,
 		})

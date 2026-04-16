@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { cookies } from 'next/headers'
 import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { CreateFlow } from '@/components/shop/create-flow'
@@ -23,6 +24,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function CreatePage() {
 	const t = await getTranslations('shop')
 	const supabase = await createClient()
+	const cookieStore = await cookies()
+	const isTestMode = cookieStore.get('aquacanvas-test-mode')?.value === 'true'
 
 	const [{ data: dbStyles }, { data: dbFormats }] = await Promise.all([
 		supabase
@@ -31,7 +34,7 @@ export default async function CreatePage() {
 			.order('sort_order', { ascending: true }),
 		supabase
 			.from('print_formats')
-			.select('id, name, slug, description, format_type, width_cm, height_cm, price_cents')
+			.select('id, name, slug, description, format_type, width_cm, height_cm, price_cents, orientation')
 			.eq('is_active', true)
 			.order('sort_order', { ascending: true }),
 	])
@@ -55,6 +58,7 @@ export default async function CreatePage() {
 		widthCm: f.width_cm,
 		heightCm: f.height_cm,
 		priceCents: f.price_cents,
+		orientation: f.orientation as 'portrait' | 'landscape' | 'square',
 	}))
 
 	return (
@@ -62,7 +66,7 @@ export default async function CreatePage() {
 			<h1 className="mb-10 font-heading text-3xl font-bold tracking-[-0.03em] text-foreground sm:text-4xl">
 				{t('createHeading')}
 			</h1>
-			<CreateFlow styles={styles} formats={formats} />
+			<CreateFlow styles={styles} formats={formats} testMode={isTestMode} />
 		</div>
 	)
 }

@@ -1,12 +1,13 @@
 'use client'
 
 import Image from 'next/image'
-import { Sparkles, AlertTriangle } from 'lucide-react'
+import { Sparkles, AlertTriangle, Clock } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { GenerationProgress } from '@/components/shop/generation-progress'
 import { GenerationResult } from '@/components/shop/generation-result'
 import type { FormatOption } from '@/components/shop/format-picker'
+import type { OrientationValue } from '@/validators/order'
 
 export type GenerationState =
 	| 'idle'
@@ -19,14 +20,17 @@ interface ArtPreviewProps {
 	file: File | null
 	selectedStyleId: string | null
 	selectedStyleSlug: string | null
+	selectedOrientation: OrientationValue | null
 	stylePriceCents: number
 	formats: FormatOption[]
 	previewUrl: string | null
 	generationState: GenerationState
 	generatedImageUrl: string | null
 	errorMessage: string | null
+	errorMeta?: Record<string, unknown> | null
 	orderId: string | null
 	guestSessionId: string
+	testMode?: boolean
 	onGenerate: () => void
 	onReset: () => void
 }
@@ -43,21 +47,24 @@ export function ArtPreview({
 	file,
 	selectedStyleId,
 	selectedStyleSlug,
+	selectedOrientation,
 	stylePriceCents,
 	formats,
 	previewUrl,
 	generationState,
 	generatedImageUrl,
 	errorMessage,
+	errorMeta,
 	orderId,
 	guestSessionId,
+	testMode,
 	onGenerate,
 	onReset,
 }: ArtPreviewProps) {
 	const tShop = useTranslations('shop')
 	const tStyles = useTranslations('styles')
 	const tErrors = useTranslations('errors')
-	const isReady = !!file && !!selectedStyleId
+	const isReady = !!file && !!selectedStyleId && !!selectedOrientation
 
 	if (generationState === 'processing' || generationState === 'submitting') {
 		return <GenerationProgress />
@@ -71,30 +78,48 @@ export function ArtPreview({
 				orderId={orderId}
 				guestSessionId={guestSessionId}
 				formats={formats}
+				selectedOrientation={selectedOrientation}
 				stylePriceCents={stylePriceCents}
+				testMode={testMode}
 				onReset={onReset}
 			/>
 		)
 	}
 
 	if (generationState === 'error') {
+		const isRateLimited = errorMessage === 'errors.rateLimited'
+		const minutes = errorMeta?.minutes as number | undefined
+		const maxRequests = errorMeta?.maxRequests as number | undefined
+
+		let displayMessage: string
+		if (isRateLimited && minutes && maxRequests) {
+			displayMessage = tErrors('rateLimited', { minutes, maxRequests })
+		} else if (isRateLimited) {
+			displayMessage = tErrors('rateLimitedGeneric')
+		} else if (errorMessage?.startsWith('errors.')) {
+			displayMessage = tErrors(
+				errorMessage.replace('errors.', '') as Parameters<typeof tErrors>[0],
+			)
+		} else {
+			displayMessage = tShop('generationFailed')
+		}
+
 		return (
 			<div className="flex flex-col items-center justify-center gap-4 rounded-xl bg-surface-container-high px-6 py-16">
-			<AlertTriangle
-				className="size-8 text-destructive"
-				aria-hidden="true"
-			/>
-			<p
-				role="alert"
-				className="font-sans text-sm text-destructive"
-			>
-				{errorMessage?.startsWith('errors.')
-					? tErrors(errorMessage.replace('errors.', '') as Parameters<typeof tErrors>[0])
-					: tShop('generationFailed')}
-			</p>
-			<Button variant="secondary" size="sm" onClick={onReset}>
-				{tShop('tryAgain')}
-			</Button>
+				{isRateLimited ? (
+					<Clock className="size-8 text-warning" aria-hidden="true" />
+				) : (
+					<AlertTriangle className="size-8 text-destructive" aria-hidden="true" />
+				)}
+				<p
+					role="alert"
+					className={`max-w-md text-center font-sans text-sm ${isRateLimited ? 'text-warning' : 'text-destructive'}`}
+				>
+					{displayMessage}
+				</p>
+				<Button variant="secondary" size="sm" onClick={onReset}>
+					{tShop('tryAgain')}
+				</Button>
 			</div>
 		)
 	}

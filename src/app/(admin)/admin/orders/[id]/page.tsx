@@ -59,6 +59,19 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 		? supabase.storage.from('images').getPublicUrl(order.generated_image_path).data.publicUrl
 		: null
 
+	const { data: envPreviews } = await supabase
+		.from('environment_previews')
+		.select('id, status, image_path, environment_scenes!inner(name)')
+		.eq('order_id', order.id)
+
+	const environmentPreviews = (envPreviews ?? []).map((ep) => ({
+		name: (ep.environment_scenes as unknown as { name: string })?.name ?? 'Room',
+		status: ep.status,
+		imageUrl: ep.image_path
+			? supabase.storage.from('images').getPublicUrl(ep.image_path).data.publicUrl
+			: null,
+	}))
+
 	return (
 		<div>
 			<div className="mb-8">
@@ -233,6 +246,41 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 							</div>
 						</div>
 					</div>
+
+					{environmentPreviews.length > 0 && (
+						<div className="rounded-xl bg-surface-container p-6">
+							<h2 className="mb-4 font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">
+								{t('orderEnvironmentPreviews')}
+							</h2>
+							<div className="grid gap-4 sm:grid-cols-3">
+								{environmentPreviews.map((ep, i) => (
+									<div key={i}>
+										<p className="mb-2 font-sans text-xs font-medium text-muted-foreground">
+											{ep.name}
+										</p>
+										{ep.imageUrl ? (
+											<div className="overflow-hidden rounded-lg">
+												<Image
+													src={ep.imageUrl}
+													alt={ep.name}
+													width={300}
+													height={200}
+													unoptimized
+													className="h-auto w-full object-cover"
+												/>
+											</div>
+										) : (
+											<div className="flex aspect-[3/2] items-center justify-center rounded-lg bg-surface-container-high">
+												<Badge variant="secondary">
+													{t(`previewStatus${ep.status.charAt(0).toUpperCase()}${ep.status.slice(1)}` as 'previewStatusPending')}
+												</Badge>
+											</div>
+										)}
+									</div>
+								))}
+							</div>
+						</div>
+					)}
 				</div>
 			</div>
 		</div>

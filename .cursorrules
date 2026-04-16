@@ -67,6 +67,24 @@ AI-powered photo-to-art e-commerce platform. Users upload a photo, choose an art
 - **Avoid N+1 queries**: Never query inside a loop. Batch with `Promise.all` + `.in()`.
 - **No string-interpolated PostgREST subqueries**: Fetch related IDs first, then filter.
 
+## Commit & deploy discipline
+
+- **One coherent unit = one commit.** A feature, bugfix, refactor, or audit batch is one commit. Avoid mega-commits that mix concerns; avoid trivial commits that fragment a single change.
+- **Commit at the end of every focused work unit.** When you complete a feature, a roadmap batch, or a logical milestone — commit immediately. Never let uncommitted changes pile up across sessions.
+- **Conventional commit format** for consistency:
+  - `feat(scope): ...` — new feature
+  - `fix(scope): ...` — bug fix
+  - `fix(security): ...` — security fix
+  - `chore(audit): ...` — audit batch / quality work
+  - `refactor(scope): ...` — restructuring without behavior change
+  - `docs: ...` — README / ROADMAP / AUDIT updates
+  - `chore(deps): ...` — dependency updates
+- **Pre-commit verification:** before committing, always run `npx tsc --noEmit && npm run lint`. Never commit code that breaks typecheck.
+- **Push after commit when work is verified.** Vercel auto-deploys from `main`, so each push is a potential prod release. Confirm with the user before pushing security fixes or breaking changes.
+- **Never let `git status` exceed one session's worth of changes.** If a session is ending and there are uncommitted changes, commit them with a clear message before stopping — even if the work is partial (use `wip:` prefix in that case).
+- **Commit messages explain "why", not "what".** The diff shows what changed; the message should clarify intent, trade-offs, or links to roadmap items.
+- **Only commit when the user explicitly asks** (existing rule, unchanged) — but proactively *propose* commits at natural milestones.
+
 ## High-priority cross-cutting concerns
 
 - **SEO**: Every page needs `generateMetadata` with title/description from locale files. Public pages require JSON-LD (`Product`, `Organization`), Open Graph, hreflang. `sitemap.ts` + `robots.ts` in `src/app/`.

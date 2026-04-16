@@ -184,10 +184,22 @@ export async function createProduct(
 		}
 
 		if (Object.keys(updates).length > 0) {
-			await supabase.from('products').update(updates).eq('id', data.id)
+			const { error: updateError } = await supabase
+				.from('products')
+				.update(updates)
+				.eq('id', data.id)
+			if (updateError) {
+				throw new Error('errors.uploadFailed')
+			}
 		}
 	} catch (err) {
 		console.error('[createProduct] image upload', err)
+		// Roll back the product so admin doesn't see a half-created record.
+		await supabase.from('products').delete().eq('id', data.id)
+		const errorKey = err instanceof Error && err.message.startsWith('errors.')
+			? err.message
+			: 'errors.uploadFailed'
+		return { success: false, error: errorKey }
 	}
 
 	revalidatePath('/admin/products')
@@ -238,8 +250,12 @@ export async function updateProduct(
 		}
 	} catch (err) {
 		console.error('[updateProduct] image upload', err)
-		const message = err instanceof Error ? err.message : 'errors.uploadFailed'
-		return { success: false, error: message }
+		// Only forward errors that are already i18n keys (thrown by uploadImageField).
+		// Anything else gets normalized to a safe generic message.
+		const errorKey = err instanceof Error && err.message.startsWith('errors.')
+			? err.message
+			: 'errors.uploadFailed'
+		return { success: false, error: errorKey }
 	}
 
 	const faq = parseFaqFromFormData(formData)

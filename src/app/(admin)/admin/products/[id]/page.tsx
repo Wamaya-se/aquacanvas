@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { z } from 'zod'
 import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
-import { ProductForm } from '@/components/admin/product-form'
+import { ProductForm, type ProductData } from '@/components/admin/product-form'
 import { DeleteProductButton } from '@/components/admin/delete-product-button'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -52,7 +52,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
 			</div>
 			<div className="rounded-xl bg-surface-container p-6 lg:p-8">
 				<ProductForm
-					product={productResult.data}
+					product={productResult.data as ProductData}
 					styles={stylesResult.data ?? []}
 				/>
 			</div>

@@ -3,9 +3,18 @@ import { z } from 'zod'
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 const ACCEPTED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
+export const orientationSchema = z.enum(['portrait', 'landscape', 'square'])
+
+export type OrientationValue = z.infer<typeof orientationSchema>
+
+// Guest sessions are generated client-side via crypto.randomUUID().
+// Validating as UUID enforces a known, bounded format (no injection vectors).
+export const guestSessionIdSchema = z.string().uuid()
+
 export const generateArtworkSchema = z.object({
 	styleId: z.string().uuid(),
 	formatId: z.string().uuid().optional(),
+	orientation: orientationSchema,
 })
 
 export const checkStatusSchema = z.object({
@@ -41,6 +50,16 @@ export const checkoutSchema = z.object({
 	formatId: z.string().uuid().optional(),
 })
 
+export const generateEnvironmentPreviewsSchema = z.object({
+	orderId: z.string().uuid(),
+})
+
+export const checkEnvironmentPreviewsSchema = z.object({
+	orderId: z.string().uuid(),
+})
+
 export type GenerateArtworkInput = z.infer<typeof generateArtworkSchema>
 export type CheckStatusInput = z.infer<typeof checkStatusSchema>
 export type CheckoutInput = z.infer<typeof checkoutSchema>
+export type GenerateEnvironmentPreviewsInput = z.infer<typeof generateEnvironmentPreviewsSchema>
+export type CheckEnvironmentPreviewsInput = z.infer<typeof checkEnvironmentPreviewsSchema>

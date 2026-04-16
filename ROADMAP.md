@@ -1,8 +1,12 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-14 (Deployed to production) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-16 (Deployed to production) | Format: compact, token-efficient. Update after each session.
 
-**Workflow (push till live):** `git push` till `main` → Vercel bygger automatiskt. Detaljer: **[README.md](./README.md)** och **[TECHSTACK.md — Deployment & drift](./TECHSTACK.md#deployment--drift)**. Supabase endast vid DB/functions-ändringar.
+## 🎯 Aktiv prioritet
+
+**Nästa upp:** Fas 12 · Batch 2 — Juridik & GDPR (se nedan).
+**Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
+**Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
 
 ## Completed
 
@@ -113,7 +117,33 @@
   - Nav: Gallery i header + footer, sitemap uppdaterad
   - SEO: generateMetadata, BreadcrumbList JSON-LD
 - [x] Buggfix: home page title duplication (absolute title i generateMetadata)
+- [x] Hero before/after: ny hero-before.jpg (16:9 crop), hero-after.png (tavlan centrerad i 16:9)
 - [ ] Blog/innehållssidor (MDX)
+
+## Completed — Fas 7b: Miljöpreview (Environment Previews)
+
+- [x] Databasschema: environment_scenes + environment_previews tabeller (migration 00012)
+  - RLS-policies för publik läsning, gäst-åtkomst, admin full
+  - Storage-policies för environment-scenes/ och environment-previews/ mappar
+  - Seed: 3 initiala rum-scener
+- [x] AI-modul: createEnvironmentPreviewTask (flux-2/flex-image-to-image via Kie.ai)
+  - Tar motivbild + rumsbild, skapar kompositbild
+  - Återanvänder befintlig getTaskStatus för polling
+- [x] Server Actions: generateEnvironmentPreviews + checkEnvironmentPreviewsStatus
+  - Parallell generering av alla aktiva scener
+  - Per-preview statusspårning (pending/processing/success/fail)
+  - Ägandevalidering (user/guest)
+- [x] Kundflöde: valfri "Se din tavla i ett rum"-knapp efter bildgenerering
+  - EnvironmentPreviewGallery-komponent med progress/skeleton/resultat
+  - Integrerat i GenerationResult mellan preview och format-val
+- [x] Admin: Scenes CRUD (/admin/scenes) — lista, skapa, redigera, ta bort
+  - Bilduppladdning till Supabase Storage
+  - SceneForm-komponent med ImageUploadField
+  - Sidebar: Scenes-länk tillagd
+- [x] Admin: orderdetalj visar rum-previews (läs-galleri)
+- [x] i18n: alla nya strängar i messages/en.json (shop, errors, admin)
+- [x] Validators: Zod-scheman för environment preview actions
+- [x] TypeScript-typer: environment_scenes + environment_previews + preview_status enum
 
 ## Fas 8: Fler stilar & produkter
 
@@ -127,12 +157,21 @@
 - [x] Admin: formathantering (CRUD) — /admin/formats
 - [x] Admin: orderdetalj visar valt printformat
 - [x] Admin sidebar: Formats-länk tillagd
+- [x] Orientering & utökade format (Fas 8b):
+  - Migration 00013: orientation-kolumn på print_formats + orders
+  - Liggande format: 40×30, 70×50, 100×70 cm (speglade mått, samma pris)
+  - Kvadratformat: 30×30, 50×50, 70×70 cm (129/199/329 SEK)
+  - Smart-detect: auto-detekterar fotots orientering, föreslår matchande canvas
+  - OrientationPicker-komponent med visuella proportionella knappar
+  - Mismatch-varning om foto och vald canvas-orientering inte matchar
+  - AI-generering anpassad: portrait→3:4, landscape→4:3, square→1:1 aspect ratio
+  - FormatPicker filtrerat: visar bara storlekar som matchar vald orientering
+  - Admin: format-formulär + lista visar orientation-fält
 - [ ] Fler produktformat: inramad poster, vykort (framtida)
-- [ ] Stilförhandsvisning: live-preview med thumbnail
+- [ ] Stilförhandsvisning: live-preview med thumbnail (→ se Fas 11: fler-stils-förhandsvisning)
 
 ## Completed — Deployment
 
-- [x] Dokumentation: [README.md](./README.md) (snabbstart) + [TECHSTACK.md — Deployment & drift](./TECHSTACK.md#deployment--drift) (Git push, Vercel, Supabase, checklista)
 - [x] GitHub repo: Wamaya-se/aquacanvas (public)
 - [x] Supabase cloud project (EU West): migreringar + seed data pushade
 - [x] Vercel deploy: https://aquacanvas.vercel.app (auto-deploy från main)
@@ -143,6 +182,8 @@
 - [ ] Resend API-nyckel i Vercel (RESEND_API_KEY)
 - [ ] Egen domän (valfritt)
 
+> **Deploy-instruktioner:** Se `TECHSTACK.md` → "Deployment-workflow" för steg-för-steg.
+
 ## Fas 9: Auth & GDPR (framtida, om kundkonton aktiveras)
 
 - [ ] Kundregistrering (reaktivera)
@@ -152,31 +193,179 @@
 - [ ] Integritetspolicy + Användarvillkor
 - [ ] Radera konto / dataexport
 
+## Completed — Fas 10a: Bildförhandsgranskning & Testläge
+
+- [x] Lightbox-galleri: yet-another-react-lightbox (YARL) med Zoom, Fullscreen, Thumbnails, Counter
+  - ImageLightbox wrapper-komponent (src/components/shop/image-lightbox.tsx)
+  - Klickbara bilder med hover-overlay och expand-ikon
+  - Alla bilder (original, AI-genererad, miljöpreviews) i en sammanhållen lightbox
+  - Keyboard-nav, touch/swipe, a11y
+- [x] Admin testläge: cookie-baserat ("aquacanvas-test-mode")
+  - Server Action toggleTestMode med admin-guard
+  - TestModeToggle på Admin Settings-sidan
+  - Create-sidan visar färdigt resultat med testbilder från /public/images
+  - EnvironmentPreviewGallery visar 3 testmiljöbilder utan API-anrop
+  - Checkout/format-val dolt i testläge
+- [x] EnvironmentPreviewGallery: onPreviewsLoaded callback + klickbara bilder i lightbox
+- [x] i18n: nya nycklar (zoomImage, imageCounter, testMode*)
+
 ## Fas 10: Polish & Produktion
 
 - [x] Initial production deploy (Vercel + Supabase Cloud)
+- [x] Miljöpreview-prompt förbättrad: restriktiv compositing-prompt som skyddar ram, kräver 100% täckning, och fryser alla rum-pixlar
 - [ ] Responsiv polish-pass
 - [ ] Performance-pass (lazy loading, image optimization, cache)
 - [ ] Monitoring: Sentry, uptime
 - [ ] Rate limiting (login, register, bildgenerering)
 
-## Framtida idéer
+## Fas 11: Create-upplevelse & Produktvisualisering
 
-- Prenumeration (X transformationer/månad)
-- Presentkort
-- Flera storlekar/material per beställning
-- Batch-upload (flera bilder)
-- Delningsfunktion (dela sin konst på sociala medier)
-- Print-on-demand integration (tredjepartstryckeri)
+Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Öka konvertering genom bättre visualisering.
+
+### Hög prioritet
+
+- [x] Auto-trigger miljöpreviews: Starta generering automatiskt efter AI-resultat (ta bort opt-in-knappen). Visa skeleton-laddare direkt under resultatet.
+- [x] Canvas-ram-mockup på resultatbild: CSS-baserad ram + skuggning på den genererade bilden så den ser ut som en fysisk canvastavla, inte en platt bild.
+- [x] Storleksvisualisering vid formatval: Proportionell SVG-illustration av canvasen ovanför en soffa-silhuett vid valt format, så kunden förstår fysisk storlek.
+
+### Medel prioritet
+
+- [ ] Before/After-slider på resultat: Ersätt sida-vid-sida med interaktiv slider (återanvänd befintlig BeforeAfterSlider). Behåll lightbox.
+- [ ] Upplösnings-/kvalitetsindikator: Beräkna DPI utifrån fotots upplösning vs valt canvasformat. Grön/gul/röd indikator med rekommendation.
+- [ ] Orienterings-matchade miljöscener: Tagga scener med orientering i DB, filtrera vilka scener som visas baserat på kundens valda orientering. 2–3 scener per orientering.
+
+### Lägre prioritet
+
+- [ ] Fler-stils-förhandsvisning: Visa lågupplösta thumbnails av fotot i varje stil innan full generering, så kunden kan jämföra utan att vänta.
+- [ ] Förbättrad progress med steg-indikation: Stepper-komponent med simulerade steg ("Analyserar ditt foto..." → "Applicerar stil..." → "Finputsar..." → "Klar!").
+
+## Fas 12: Säkerhets- & kvalitetsaudit (2026-04-16)
+
+> Resultat av djupanalys (se `AUDIT.md` för detaljer per item).
+> 4 batchar = 4 fokuserade sessioner. Varje batch är en commit.
+
+### Batch 1 — Kritiska säkerhetsfixar 🔴
+
+> **Status:** ✅ Klar (2026-04-16) · **Mål:** Inga kvarvarande critical-säkerhetshål i prod.
+
+- [x] Open redirect i login (`src/lib/actions/auth.ts`) — `isSafePath()` helper i `src/lib/safe-redirect.ts`
+- [x] Open redirect i OAuth callback (`src/app/(auth)/callback/route.ts`) — samma helper
+- [x] Rate-limit-bypass + test mode cookies kräver admin-verifiering (`src/lib/actions/admin-settings.ts`) — `isAdmin()` check vid varje read
+- [x] Stripe webhook-idempotens — migration `00014_stripe_event_idempotency.sql` + insert/check i `src/app/api/webhooks/stripe/route.ts`
+- [x] `createProduct` rullar tillbaka produkten vid uppladdningsfel (`src/lib/actions/admin-products.ts`)
+- [x] `updateProduct` mappar exception till säker i18n-nyckel
+- [x] Provider `failMsg` borttagen från publik typ — loggas bara server-side
+- [x] `guestSessionId` Zod-validerad (`guestSessionIdSchema`) i `ai.ts`, `checkout.ts`, `environment-preview.ts`
+- [x] Bonus: Supabase-typer regenererade från cloud (auktoritativ) + 2 typ-exporter exporterade (`FormatData`, `ProductData`) för konsumenter
+
+### Batch 2 — Juridik & GDPR 🟠
+
+> **Status:** ⏳ Ej startad · **Mål:** Sajten är GDPR-redo + alla länkar fungerar.
+
+- [ ] Skapa `/privacy` (integritetspolicy) — sida + i18n + sitemap
+- [ ] Skapa `/terms` (användarvillkor) — sida + i18n + sitemap
+- [ ] Skapa `/cookies` (cookie-policy) — sida + i18n + sitemap
+- [ ] Ta bort `/forgot-password`-länk i `src/components/auth/login-form.tsx` (eller skapa sidan)
+- [ ] Cookie-banner (om analytics tillkommer) — eller dokumentera i AUDIT.md varför ej behövs nu
+- [ ] Dataradering-flöde dokumenterat (gäst kan begära via order-ID + e-post, server-action)
+- [ ] Footer-länkar verifierade (`src/components/shared/footer.tsx:45-56`)
+
+### Batch 3 — i18n & a11y-städning 🟡
+
+> **Status:** ⏳ Ej startad · **Mål:** Inga hårdkodade strängar, semantiskt korrekt landmark-struktur.
+
+- [ ] Auth-rubriker via i18n (`src/app/(auth)/login/page.tsx:17`, `register/page.tsx:16`)
+- [ ] Hero/gallery/product `alt`-texter via i18n
+- [ ] `aria-label` på `<nav>`-element (`header.tsx:36`, `mobile-nav.tsx:35`)
+- [ ] Theme toggle `aria-label` (`theme-toggle.tsx:44`)
+- [ ] Loading-knapptext `"..."` → `common.loading` (`login-form.tsx:96`, `register-form.tsx:92`)
+- [ ] JSON-LD breadcrumb-labels översatta + `getSiteUrl()` istället för hårdkodad domän (`p/[slug]:103`, `gallery:80`, `about:43`, `faq:82`, `contact`)
+- [ ] Organization JSON-LD läser från env (`page.tsx:362-376`)
+- [ ] Fixa nästlad `<main>` + duplikat `#main-content` i error-boundaries (`(marketing)/error.tsx:14`, `(shop)/error.tsx:14`, `(auth)/error.tsx:13`) — använd `<div>`-wrapper som admin/dashboard
+- [ ] Konsekvent `aria-invalid` + `aria-describedby` på alla forms (register-form + admin-formulär)
+- [ ] Login: ersätt brittling `state.error?.includes('email')` med strukturerat fält-fel
+- [ ] FAQ-fält: byt `as string` mot Zod-parse (`admin-products.ts:99-100`)
+- [ ] Ersätt `text-white` i `generation-result.tsx:334` med theme-token
+
+### Batch 4 — SEO + observability 🟡
+
+> **Status:** ⏳ Ej startad · **Mål:** Sajten är produktionsmogen för trafik & felövervakning.
+
+- [ ] Sentry-integration (server + client) med `orderId`/`taskId`-tags
+- [ ] Distributed rate limiting (Upstash Redis eller Vercel KV) — ersätt `src/lib/rate-limit.ts`
+- [ ] Lägg på rate limiting på `login`, `register`, `sendContactMessage` Server Actions
+- [ ] `metadataBase` i root layout
+- [ ] `alternates.canonical` på alla publika sidor
+- [ ] Twitter card metadata på alla publika sidor
+- [ ] OG-image för auth/checkout-sidor
+- [ ] `loading.tsx` per route group (marketing, shop, admin, dashboard)
+- [ ] Bryt ut `usePollingTask`-hook (DRY mellan `create-flow.tsx` och `environment-preview-gallery.tsx`)
+- [ ] `getSiteUrl()` i `sitemap.ts` + `robots.ts` (ersätt `process.env.NEXT_PUBLIC_SITE_URL`-fallback)
+- [ ] Type-safe Supabase-relationer — antingen DB-enum för `orientation`, Zod-parse vid query, eller `db-helpers.ts` med typed parsers (ersätter både pre-existerande `as unknown as`-cast och de 4 cast som tillkom i Batch 1)
+
+---
+
+## Fas 13: Strategiska produktidéer
+
+> Inte audit-arbete — produktbeslut. Plocka när Fas 12 är klar och du vill prioritera tillväxt/differentiering.
+
+### Tillväxt & konvertering
+
+- [ ] **Svenska översättning** (`messages/sv.json`) + `hreflang`-implementation — sajten är svensk, stor SEO-vinst
+- [ ] E-post-capture innan generering (för abandoned cart + lead gen)
+- [ ] Abandoned cart e-post-sekvens (Resend + cron / Supabase Edge Function)
+- [ ] Kundrecensioner/betyg på produktsidor (social proof + SEO)
+- [ ] Delningsfunktion: dela genererat verk på sociala medier (med dynamisk OG-bild)
+- [ ] Newsletter-signup (footer + post-purchase)
+- [ ] DPI/kvalitetsindikator vid formatval (höjd från Fas 11)
+
+### Admin & operations
+
+- [ ] Refunds via Stripe API + status `refunded`
+- [ ] Tracking-nummer + fraktbolag på order, länk i shipped-mejl
+- [ ] Print-on-demand-integration (Printify/Gelato — automatisk fulfillment)
+- [ ] Audit log för admin-åtgärder
+- [ ] Analytics-dashboard: konverteringstratt, populära stilar, AI-kostnad i SEK vs intäkt
+- [ ] Customer search (e-post) i admin
+- [ ] Bildgalleri/mediabibliotek i admin
+- [ ] Order notes (interna anteckningar per order)
+- [ ] Bulk actions (markera som shipped, exportera filtrerade)
+
+### Produktdifferentiering
+
+- [ ] Multi-photo composite (par/familj kombinerat i en tavla)
+- [ ] Custom prompt för avancerade användare
+- [ ] Presentkort (Stripe Gift Cards)
+- [ ] Prenumeration (X tavlor/månad)
+- [ ] Fler produktformat: inramad poster, vykort
+- [ ] Flera storlekar/material per beställning
+- [ ] Batch-upload (flera bilder samtidigt)
+
+### Kodkvalitet & process
+
+- [ ] Vitest för validators + lib/actions
+- [ ] Playwright E2E genom create-flödet (mock checkout)
+- [ ] i18n-unused-keys-script i CI
+- [ ] ESLint-regel mot hårdkodade JSX-strängar
+
+### Auth (om kundkonton aktiveras — se Fas 9)
+
+- [ ] Kundregistrering reaktiverad
+- [ ] Lösenordsåterställning
+- [ ] Google OAuth
+- [ ] Radera konto / dataexport (UI för inloggade)
+
+---
+
+## Framtida idéer (parkerade)
+
 - API för tredjepartsintegrationer
-- Flerespråksstöd (sv, en, no, da, fi)
-- Audit log (admin-åtgärder)
-- Bildgalleri/mediabibliotek i admin
+- Flerspråksstöd utöver sv/en (no, da, fi)
 
 ## DB Schema Status
 
-Tables: profiles, styles (+ price_cents), products (+ faq JSONB), discount_codes, print_formats (NEW — canvas sizes), orders (+ product_id, customer_email, ai_model, ai_cost_time_ms, ai_task_id, discount_code_id, format_id), generated_images
-Enums: order_status (created/processing/generated/paid/shipped), user_role (customer/admin)
+Tables: profiles, styles (+ price_cents), products (+ faq JSONB), discount_codes, print_formats (canvas sizes + orientation), orders (+ product_id, customer_email, ai_model, ai_cost_time_ms, ai_task_id, discount_code_id, format_id, orientation), generated_images, environment_scenes (name, image_path, is_active, sort_order), environment_previews (order_id, scene_id, image_path, ai_task_id, status, metadata)
+Enums: order_status (created/processing/generated/paid/shipped), user_role (customer/admin), preview_status (pending/processing/success/fail)
 Functions: is_admin(), handle_updated_at(), handle_new_user()
 Storage: `images` bucket (10 MB limit, jpeg/png/webp) + `products/` folder for product images
 Auth flows: email/password login (admin only), session refresh via middleware, callback route for OAuth

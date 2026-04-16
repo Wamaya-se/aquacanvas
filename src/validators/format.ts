@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { orientationSchema } from '@/validators/order'
 
 export const formatSchema = z.object({
 	name: z.string().min(1).max(100),
@@ -8,6 +9,7 @@ export const formatSchema = z.object({
 	widthCm: z.coerce.number().int().min(1),
 	heightCm: z.coerce.number().int().min(1),
 	priceCents: z.coerce.number().int().min(0),
+	orientation: orientationSchema.default('portrait'),
 	isActive: z.coerce.boolean().default(true),
 	sortOrder: z.coerce.number().int().min(0).default(0),
 })

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { getSiteUrl, getAdminEmail } from '@/lib/env'
+import { getTestModeEnabled, getRateLimitBypassEnabled } from '@/lib/actions/admin-settings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -12,6 +13,8 @@ import {
 	TableHeader,
 	TableRow,
 } from '@/components/ui/table'
+import { TestModeToggle } from '@/components/admin/test-mode-toggle'
+import { RateLimitToggle } from '@/components/admin/rate-limit-toggle'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('admin.meta')
@@ -24,6 +27,9 @@ function isEnvSet(key: string): boolean {
 
 export default async function AdminSettingsPage() {
 	const t = await getTranslations('admin')
+
+	const isTestMode = await getTestModeEnabled()
+	const isRateLimitBypassed = await getRateLimitBypassEnabled()
 
 	const hasResendKey = isEnvSet('RESEND_API_KEY')
 	const hasStripeKey = isEnvSet('STRIPE_SECRET_KEY')
@@ -109,6 +115,30 @@ export default async function AdminSettingsPage() {
 								</Badge>
 							</div>
 						))}
+					</CardContent>
+				</Card>
+			</div>
+
+			<div className="mb-8 grid gap-6 lg:grid-cols-2">
+				<Card>
+					<CardHeader>
+						<CardTitle className="font-heading text-lg tracking-[-0.03em]">
+							{t('testMode')}
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<TestModeToggle initialEnabled={isTestMode} />
+					</CardContent>
+				</Card>
+
+				<Card>
+					<CardHeader>
+						<CardTitle className="font-heading text-lg tracking-[-0.03em]">
+							{t('rateLimitBypass')}
+						</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<RateLimitToggle initialEnabled={isRateLimitBypassed} />
 					</CardContent>
 				</Card>
 			</div>

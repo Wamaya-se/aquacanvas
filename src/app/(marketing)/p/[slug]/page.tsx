@@ -82,7 +82,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 	const supabaseFormats = await createClient()
 	const { data: dbFormats } = await supabaseFormats
 		.from('print_formats')
-		.select('id, name, slug, description, format_type, width_cm, height_cm, price_cents')
+		.select('id, name, slug, description, format_type, width_cm, height_cm, price_cents, orientation')
 		.eq('is_active', true)
 		.order('sort_order', { ascending: true })
 
@@ -95,6 +95,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 		widthCm: f.width_cm,
 		heightCm: f.height_cm,
 		priceCents: f.price_cents,
+		orientation: f.orientation as 'portrait' | 'landscape' | 'square',
 	}))
 
 	const faq = (product.faq ?? []) as { question: string; answer: string }[]

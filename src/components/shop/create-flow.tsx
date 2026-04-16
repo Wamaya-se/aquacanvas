@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useTranslations } from 'next-intl'
 import { ImageUpload } from '@/components/shop/image-upload'
 import { StylePicker, type StyleOption } from '@/components/shop/style-picker'
+import { OrientationPicker } from '@/components/shop/orientation-picker'
 import { ArtPreview, type GenerationState } from '@/components/shop/art-preview'
 import { generateArtwork, checkGenerationStatus } from '@/lib/actions/ai'
 import type { FormatOption } from '@/components/shop/format-picker'
+import type { OrientationValue } from '@/validators/order'
 
 const MAX_POLL_ATTEMPTS = 60
 const INITIAL_POLL_INTERVAL = 3000
@@ -22,19 +24,28 @@ function getOrCreateGuestSession(): string {
 	return id
 }
 
+const TEST_IMAGES = {
+	original: '/images/hero-before.jpg',
+	generated: '/images/hero-after.png',
+	orderId: 'test-order-00000000-0000-0000-0000-000000000000',
+}
+
 interface CreateFlowProps {
 	styles: StyleOption[]
 	formats: FormatOption[]
 	lockedStyleId?: string
+	testMode?: boolean
 }
 
-export function CreateFlow({ styles, formats, lockedStyleId }: CreateFlowProps) {
+export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateFlowProps) {
 	const tShop = useTranslations('shop')
 	const guestSessionId = useMemo(() => getOrCreateGuestSession(), [])
 
 	const [file, setFile] = useState<File | null>(null)
 	const [selectedStyleId, setSelectedStyleId] = useState<string | null>(lockedStyleId ?? null)
 	const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+	const [selectedOrientation, setSelectedOrientation] = useState<OrientationValue | null>(null)
+	const [detectedOrientation, setDetectedOrientation] = useState<OrientationValue | null>(null)
 
 	const isStyleLocked = !!lockedStyleId
 
@@ -42,22 +53,53 @@ export function CreateFlow({ styles, formats, lockedStyleId }: CreateFlowProps) 
 		? styles.find((s) => s.id === selectedStyleId) ?? null
 		: null
 
-	const [generationState, setGenerationState] = useState<GenerationState>('idle')
-	const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
+	const [generationState, setGenerationState] = useState<GenerationState>(
+		testMode ? 'success' : 'idle',
+	)
+	const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
+		testMode ? TEST_IMAGES.generated : null,
+	)
 	const [errorMessage, setErrorMessage] = useState<string | null>(null)
-	const [orderId, setOrderId] = useState<string | null>(null)
+	const [errorMeta, setErrorMeta] = useState<Record<string, unknown> | null>(null)
+	const [orderId, setOrderId] = useState<string | null>(
+		testMode ? TEST_IMAGES.orderId : null,
+	)
 
 	const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 	const attemptRef = useRef(0)
 
 	useEffect(() => {
+		if (testMode) {
+			setPreviewUrl(TEST_IMAGES.original)
+			setDetectedOrientation('portrait')
+			setSelectedOrientation('portrait')
+			return
+		}
 		if (file) {
 			const url = URL.createObjectURL(file)
 			setPreviewUrl(url)
+
+			const img = new window.Image()
+			img.onload = () => {
+				let detected: OrientationValue
+				if (img.naturalWidth > img.naturalHeight) {
+					detected = 'landscape'
+				} else if (img.naturalWidth < img.naturalHeight) {
+					detected = 'portrait'
+				} else {
+					detected = 'square'
+				}
+				setDetectedOrientation(detected)
+				setSelectedOrientation(detected)
+			}
+			img.src = url
+
 			return () => URL.revokeObjectURL(url)
 		}
 		setPreviewUrl(null)
-	}, [file])
+		setDetectedOrientation(null)
+		setSelectedOrientation(null)
+	}, [file, testMode])
 
 	useEffect(() => {
 		return () => {
@@ -114,10 +156,11 @@ export function CreateFlow({ styles, formats, lockedStyleId }: CreateFlowProps) 
 	)
 
 	async function handleGenerate() {
-		if (!file || !selectedStyleId) return
+		if (!file || !selectedStyleId || !selectedOrientation) return
 
 		setGenerationState('submitting')
 		setErrorMessage(null)
+		setErrorMeta(null)
 		setGeneratedImageUrl(null)
 		setOrderId(null)
 
@@ -125,12 +168,14 @@ export function CreateFlow({ styles, formats, lockedStyleId }: CreateFlowProps) 
 		formData.append('photo', file)
 		formData.append('styleId', selectedStyleId)
 		formData.append('guestSessionId', guestSessionId)
+		formData.append('orientation', selectedOrientation)
 
 		const result = await generateArtwork(formData)
 
 		if (!result.success) {
 			setGenerationState('error')
 			setErrorMessage(result.error)
+			setErrorMeta(result.meta ?? null)
 			return
 		}
 
@@ -144,22 +189,41 @@ export function CreateFlow({ styles, formats, lockedStyleId }: CreateFlowProps) 
 		setGenerationState('idle')
 		setGeneratedImageUrl(null)
 		setErrorMessage(null)
+		setErrorMeta(null)
 		setOrderId(null)
 		setFile(null)
+		setDetectedOrientation(null)
+		setSelectedOrientation(null)
 		if (!isStyleLocked) setSelectedStyleId(null)
 	}
 
 	return (
 		<div className="flex flex-col gap-12">
-			{generationState === 'idle' || generationState === 'error' ? (
-				isStyleLocked ? (
+		{generationState === 'idle' || generationState === 'error' ? (
+			isStyleLocked ? (
+				<>
 					<div className="flex flex-col gap-4">
 						<h2 className="font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">
 							{tShop('uploadPhoto')}
 						</h2>
 						<ImageUpload file={file} onFileChange={setFile} />
 					</div>
-				) : (
+
+					{file && detectedOrientation && (
+						<div className="flex flex-col gap-4">
+							<h2 className="font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">
+								{tShop('chooseOrientation')}
+							</h2>
+							<OrientationPicker
+								selected={selectedOrientation}
+								detectedOrientation={detectedOrientation}
+								onSelect={setSelectedOrientation}
+							/>
+						</div>
+					)}
+				</>
+			) : (
+				<div className="flex flex-col gap-8">
 					<div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
 						<div className="flex flex-col gap-4">
 							<h2 className="font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">
@@ -179,8 +243,22 @@ export function CreateFlow({ styles, formats, lockedStyleId }: CreateFlowProps) 
 							/>
 						</div>
 					</div>
-				)
-			) : null}
+
+					{file && detectedOrientation && (
+						<div className="flex flex-col gap-4">
+							<h2 className="font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">
+								{tShop('chooseOrientation')}
+							</h2>
+							<OrientationPicker
+								selected={selectedOrientation}
+								detectedOrientation={detectedOrientation}
+								onSelect={setSelectedOrientation}
+							/>
+						</div>
+					)}
+				</div>
+			)
+		) : null}
 
 			<div>
 				{generationState === 'idle' || generationState === 'error' ? (
@@ -188,21 +266,24 @@ export function CreateFlow({ styles, formats, lockedStyleId }: CreateFlowProps) 
 						{tShop('preview')}
 					</h2>
 				) : null}
-				<ArtPreview
-					file={file}
-					selectedStyleId={selectedStyleId}
-					selectedStyleSlug={selectedStyle?.slug ?? null}
-					stylePriceCents={selectedStyle?.priceCents ?? 0}
-					formats={formats}
-					previewUrl={previewUrl}
-					generationState={generationState}
-					generatedImageUrl={generatedImageUrl}
-					errorMessage={errorMessage}
-					orderId={orderId}
-					guestSessionId={guestSessionId}
-					onGenerate={handleGenerate}
-					onReset={handleReset}
-				/>
+			<ArtPreview
+				file={file}
+				selectedStyleId={selectedStyleId}
+				selectedStyleSlug={selectedStyle?.slug ?? null}
+				selectedOrientation={selectedOrientation}
+				stylePriceCents={selectedStyle?.priceCents ?? 0}
+				formats={formats}
+				previewUrl={previewUrl}
+				generationState={generationState}
+				generatedImageUrl={generatedImageUrl}
+				errorMessage={errorMessage}
+				errorMeta={errorMeta}
+				orderId={orderId}
+				guestSessionId={guestSessionId}
+				testMode={testMode}
+				onGenerate={handleGenerate}
+				onReset={handleReset}
+			/>
 			</div>
 		</div>
 	)

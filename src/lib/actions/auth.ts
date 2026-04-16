@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { loginSchema, registerSchema } from '@/validators/auth'
 import type { ActionResult } from '@/types/actions'
 import { getSiteUrl } from '@/lib/env'
+import { isSafePath } from '@/lib/safe-redirect'
 
 export async function login(
 	formData: FormData,
@@ -40,13 +41,8 @@ export async function login(
 
 	revalidatePath('/', 'layout')
 
-	const redirectTo = raw.redirect as string
-	if (
-		redirectTo &&
-		typeof redirectTo === 'string' &&
-		redirectTo.startsWith('/')
-	) {
-		redirect(redirectTo)
+	if (isSafePath(raw.redirect)) {
+		redirect(raw.redirect)
 	}
 
 	redirect('/admin')

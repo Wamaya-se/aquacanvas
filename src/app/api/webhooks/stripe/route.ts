@@ -51,6 +51,28 @@ export async function POST(request: Request) {
 		const customerEmail = session.customer_details?.email ?? null
 		const adminDb = createAdminClient()
 
+		// Idempotency: skip if this event was already processed. Stripe retries
+		// failed deliveries and may send the same event multiple times.
+		const { data: idempotencyRow, error: idempotencyError } = await adminDb
+			.from('processed_stripe_events')
+			.insert({ event_id: event.id, event_type: event.type })
+			.select('event_id')
+			.maybeSingle()
+
+		if (idempotencyError && idempotencyError.code !== '23505') {
+			console.error('[stripe-webhook] idempotency insert failed', idempotencyError)
+			// Fail open: return 500 so Stripe retries; safer than silent skip.
+			return NextResponse.json(
+				{ error: 'Idempotency check failed' },
+				{ status: 500 },
+			)
+		}
+
+		if (!idempotencyRow) {
+			console.log(`[stripe-webhook] event ${event.id} already processed, skipping`)
+			return NextResponse.json({ received: true, duplicate: true })
+		}
+
 		const formatId = session.metadata?.formatId
 		const formatIdResult = formatId ? z.string().uuid().safeParse(formatId) : null
 

@@ -4,10 +4,18 @@ import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createImageTask, getTaskStatus, uploadFileToKie } from '@/lib/ai'
-import { generateArtworkSchema, checkStatusSchema, validateFile } from '@/validators/order'
+import { generateArtworkSchema, checkStatusSchema, guestSessionIdSchema, validateFile } from '@/validators/order'
+import type { OrientationValue } from '@/validators/order'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { getRateLimitBypassEnabled } from '@/lib/actions/admin-settings'
 import type { ActionResult } from '@/types/actions'
-import type { KieTaskState } from '@/lib/ai'
+import type { KieTaskState, AspectRatio } from '@/lib/ai'
+
+const ORIENTATION_TO_ASPECT_RATIO: Record<OrientationValue, AspectRatio> = {
+	portrait: '3:4',
+	landscape: '4:3',
+	square: '1:1',
+}
 
 export interface GenerateArtworkData {
 	orderId: string
@@ -17,7 +25,6 @@ export interface GenerateArtworkData {
 export interface GenerationStatusData {
 	state: KieTaskState
 	generatedImageUrl: string | null
-	failMsg: string | null
 }
 
 async function getClientIp(): Promise<string> {
@@ -38,18 +45,26 @@ export async function generateArtwork(
 	} = await supabase.auth.getUser()
 
 	const isGuest = !user
-	const guestSessionId = isGuest
-		? (formData.get('guestSessionId') as string | null)
-		: null
+	let guestSessionId: string | null = null
 
-	if (isGuest && !guestSessionId) {
-		return { success: false, error: 'errors.invalidInput' }
+	if (isGuest) {
+		const parsedGuestId = guestSessionIdSchema.safeParse(formData.get('guestSessionId'))
+		if (!parsedGuestId.success) {
+			return { success: false, error: 'errors.invalidInput' }
+		}
+		guestSessionId = parsedGuestId.data
 	}
 
 	const rateLimitId = user?.id ?? (await getClientIp())
-	const { allowed } = checkRateLimit(rateLimitId, isGuest)
-	if (!allowed) {
-		return { success: false, error: 'errors.rateLimited' }
+	const rateLimitBypassed = await getRateLimitBypassEnabled()
+	const rateLimit = checkRateLimit(rateLimitId, isGuest, { disabled: rateLimitBypassed })
+	if (!rateLimit.allowed) {
+		const minutes = Math.ceil((rateLimit.retryAfterSeconds ?? 0) / 60)
+		return {
+			success: false,
+			error: 'errors.rateLimited',
+			meta: { minutes, maxRequests: rateLimit.maxRequests },
+		}
 	}
 
 	const fileResult = validateFile(formData.get('photo'))
@@ -60,10 +75,14 @@ export async function generateArtwork(
 
 	const parsed = generateArtworkSchema.safeParse({
 		styleId: formData.get('styleId'),
+		orientation: formData.get('orientation'),
 	})
 	if (!parsed.success) {
 		return { success: false, error: 'errors.invalidInput' }
 	}
+
+	const { orientation } = parsed.data
+	const imageSize = ORIENTATION_TO_ASPECT_RATIO[orientation]
 
 	// Use admin client for DB operations (bypasses RLS for guests)
 	const adminDb = createAdminClient()
@@ -87,6 +106,7 @@ export async function generateArtwork(
 		.insert({
 			...(user ? { user_id: user.id } : { guest_session_id: guestSessionId }),
 			style_id: style.id,
+			orientation,
 			status: 'created',
 		})
 		.select('id')
@@ -122,7 +142,9 @@ export async function generateArtwork(
 	try {
 		const fileBuffer = await file.arrayBuffer()
 		const kieImageUrl = await uploadFileToKie(fileBuffer, file.type, file.name)
-		const result = await createImageTask(kieImageUrl, style.prompt_template)
+		const result = await createImageTask(kieImageUrl, style.prompt_template, {
+			imageSize: imageSize,
+		})
 		taskId = result.taskId
 	} catch (err) {
 		console.error('[generateArtwork] Kie.ai upload/createTask', err)
@@ -163,8 +185,12 @@ export async function checkGenerationStatus(
 
 	const isGuest = !user
 
-	if (isGuest && !guestSessionId) {
-		return { success: false, error: 'errors.invalidInput' }
+	if (isGuest) {
+		const parsedGuestId = guestSessionIdSchema.safeParse(guestSessionId)
+		if (!parsedGuestId.success) {
+			return { success: false, error: 'errors.invalidInput' }
+		}
+		guestSessionId = parsedGuestId.data
 	}
 
 	const parsed = checkStatusSchema.safeParse({ taskId, orderId })
@@ -209,7 +235,6 @@ export async function checkGenerationStatus(
 			data: {
 				state: 'success',
 				generatedImageUrl: url,
-				failMsg: null,
 			},
 		}
 	}
@@ -268,7 +293,6 @@ export async function checkGenerationStatus(
 				data: {
 					state: 'success',
 					generatedImageUrl: publicUrl,
-					failMsg: null,
 				},
 			}
 		} catch (err) {
@@ -278,6 +302,13 @@ export async function checkGenerationStatus(
 	}
 
 	if (status.state === 'fail') {
+		// Log provider failure message server-side only — never return to client
+		// to avoid leaking implementation details (provider name, internal codes).
+		console.error(
+			`[checkGenerationStatus] Kie.ai task ${parsed.data.taskId} failed:`,
+			status.failMsg,
+		)
+
 		await adminDb
 			.from('orders')
 			.update({ status: 'created' })
@@ -288,7 +319,6 @@ export async function checkGenerationStatus(
 			data: {
 				state: 'fail',
 				generatedImageUrl: null,
-				failMsg: status.failMsg,
 			},
 		}
 	}
@@ -298,7 +328,6 @@ export async function checkGenerationStatus(
 		data: {
 			state: status.state,
 			generatedImageUrl: null,
-			failMsg: null,
 		},
 	}
 }

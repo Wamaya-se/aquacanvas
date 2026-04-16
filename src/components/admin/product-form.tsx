@@ -30,7 +30,7 @@ interface Style {
 	name: string
 }
 
-interface ProductData {
+export interface ProductData {
 	id: string
 	name: string
 	slug: string
