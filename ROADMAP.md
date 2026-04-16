@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-16 (Deployed to production) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-16 (Batch 2 — Juridik & GDPR klar) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** Fas 12 · Batch 2 — Juridik & GDPR (se nedan).
+**Nästa upp:** Fas 12 · Batch 3 — i18n & a11y-städning (se nedan).
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
 
@@ -260,15 +260,15 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Batch 2 — Juridik & GDPR 🟠
 
-> **Status:** ⏳ Ej startad · **Mål:** Sajten är GDPR-redo + alla länkar fungerar.
+> **Status:** ✅ Klar (2026-04-16) · **Mål:** Sajten är GDPR-redo + alla länkar fungerar.
 
-- [ ] Skapa `/privacy` (integritetspolicy) — sida + i18n + sitemap
-- [ ] Skapa `/terms` (användarvillkor) — sida + i18n + sitemap
-- [ ] Skapa `/cookies` (cookie-policy) — sida + i18n + sitemap
-- [ ] Ta bort `/forgot-password`-länk i `src/components/auth/login-form.tsx` (eller skapa sidan)
-- [ ] Cookie-banner (om analytics tillkommer) — eller dokumentera i AUDIT.md varför ej behövs nu
-- [ ] Dataradering-flöde dokumenterat (gäst kan begära via order-ID + e-post, server-action)
-- [ ] Footer-länkar verifierade (`src/components/shared/footer.tsx:45-56`)
+- [x] Skapa `/privacy` (integritetspolicy) — sida + i18n + sitemap + WebPage/Breadcrumb JSON-LD
+- [x] Skapa `/terms` (användarvillkor) — svensk distansavtalslag (14 dagars ångerrätt, undantag för kundanpassade varor), immaterialrätt, reklamation
+- [x] Skapa `/cookies` (cookie-policy) — lista över alla cookies + motivering till varför ingen banner krävs
+- [x] Ta bort `/forgot-password`-länk i `src/components/auth/login-form.tsx` (reaktiveras i Fas 9); rensat `auth.forgotPassword`-nyckel från `messages/en.json`
+- [x] Cookie-banner-beslut dokumenterat i `AUDIT.md` + `/cookies` (inga analytics/marketing — omvärderas när analytics tillkommer i Batch 4)
+- [x] Dataradering-flöde (minimum): dokumenterat i `/privacy` — email `support@aquacanvas.com` med order-ID + e-post → manuell radering inom 30 dagar (GDPR Art. 12(3)). Full Server Action + admin-vy flaggad till Fas 13 om volym kräver.
+- [x] Footer-länkar verifierade + `/cookies` tillagd i `src/components/shared/footer.tsx`
 
 ### Batch 3 — i18n & a11y-städning 🟡
 

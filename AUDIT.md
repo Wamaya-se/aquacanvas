@@ -11,7 +11,7 @@
 | Batch | Antal items | Status | Kategori |
 |-------|-------------|--------|----------|
 | 1 — Kritiska säkerhetsfixar | 8 | ✅ Klar (2026-04-16) | 🔴 Critical |
-| 2 — Juridik & GDPR | 7 | ⏳ Ej startad | 🟠 Compliance |
+| 2 — Juridik & GDPR | 7 | ✅ Klar (2026-04-16) | 🟠 Compliance |
 | 3 — i18n & a11y-städning | 12 | ⏳ Ej startad | 🟡 Quality |
 | 4 — SEO + observability | 12 | ⏳ Ej startad | 🟡 Production-readiness |
 
@@ -161,9 +161,11 @@ const guestSessionId = isGuest
 
 ---
 
-## Batch 2 — Juridik & GDPR 🟠
+## Batch 2 — Juridik & GDPR 🟠 ✅ KLAR
 
-### 2.1 Skapa `/privacy`
+> Genomförd 2026-04-16. Alla 7 items åtgärdade. Policy-texter på engelska (konsekvent med `messages/en.json`; svensk översättning i Fas 13). Företagsuppgifter som placeholders (`[Company Name]`, `[Org.nr]`, postadress) — fylls i innan marknadsföring. Dataradering på minimum-nivå per GDPR Art. 12(3): email-flöde dokumenterat i `/privacy`, ingen ny DB-tabell eller admin-vy (flaggad till Fas 13 om volym kräver).
+
+### 2.1 Skapa `/privacy` ✅
 
 **Var:** `src/app/(marketing)/privacy/page.tsx`
 **Innehåll (mall):** vad vi samlar (foton, e-post, ordrar), varför, hur länge, third parties (Supabase EU, Stripe, Kie.ai, Resend, Vercel), användarens rättigheter (radering, export), kontakt.
@@ -171,40 +173,39 @@ const guestSessionId = isGuest
 **SEO:** `generateMetadata`, JSON-LD `WebPage`.
 **Sitemap:** lägg till i `src/app/sitemap.ts`.
 
-### 2.2 Skapa `/terms`
+### 2.2 Skapa `/terms` ✅
 
 **Var:** `src/app/(marketing)/terms/page.tsx`
 **Innehåll:** beställning, leverans, ångerrätt (svensk konsumentlagstiftning — distansavtalslag 14 dagar), reklamation, immaterialrätt (kunden äger uppladdat foto, vi får inte återanvända det), force majeure.
 **i18n:** namespace `terms.*`.
 
-### 2.3 Skapa `/cookies`
+### 2.3 Skapa `/cookies` ✅
 
 **Var:** `src/app/(marketing)/cookies/page.tsx`
 **Innehåll:** vilka cookies vi sätter (`sb-*` för session, `aquacanvas-test-mode`, `aquacanvas-rate-limit-bypass`, `theme`), funktion vs analytics.
 **Notera:** om vi inte har analytics-cookies kan vi argumentera att ingen banner krävs (bara funktionella cookies).
 
-### 2.4 Ta bort eller skapa `/forgot-password`
+### 2.4 Ta bort eller skapa `/forgot-password` ✅
 
-**Fil:** `src/components/auth/login-form.tsx:78-82`
-**Beslut:** Eftersom kundkonton är inaktiva (Fas 5 pivot), ta bort länken. Lägg tillbaka när Fas 9 aktiveras.
+**Fil:** `src/components/auth/login-form.tsx`
+**Beslut:** Länken borttagen eftersom kundkonton är inaktiva (Fas 5 pivot). `auth.forgotPassword`-nyckeln borttagen från `messages/en.json`. Reintroduceras när Fas 9 aktiveras.
 
-### 2.5 Cookie-banner — beslut
+### 2.5 Cookie-banner — beslut ✅
 
-**Beslut:** dokumentera i `AUDIT.md` att vi inte behöver banner nu eftersom alla cookies är funktionella (no analytics, no marketing). Om Sentry/Plausible tillkommer i Batch 4 → omvärdera.
+**Beslut:** Ingen banner krävs. Alla cookies vi sätter är strikt nödvändiga eller funktionella (Supabase-session `sb-*`, `theme`, admin-cookies för test-mode och rate-limit-bypass). Under EU ePrivacy-direktivet och svenska LEK 2003:389 kap 6 §18 krävs samtycke endast för icke-essentiella cookies. Beslutet är publikt dokumenterat på `/cookies`. Om Sentry, Plausible, eller annan analytics tillkommer i Batch 4 → introducera consent-mekanism innan analytics laddas.
 
-### 2.6 Dataradering-flöde
+### 2.6 Dataradering-flöde ✅
 
-**Krav (GDPR Art. 17):** användare måste kunna begära radering.
-**Implementation:**
-- Server Action `requestDataDeletion(orderId, email)` — verifierar via signerad länk i mejl
-- Admin-vy `/admin/data-requests` med pending requests
-- Manuell radering av order + storage-objekt + e-post-bekräftelse
-- Dokumentera i `/privacy` hur man begär det.
+**Beslut:** Minimum-nivå (GDPR-compliant per Art. 12(3) och 17). Dokumenterat på `/privacy` under "How to Request Data Deletion": kunden mailar `support@aquacanvas.com` med order-ID + e-post som användes vid ordern, admin raderar manuellt inom 30 dagar. Motiv: låg volym, ingen inloggad kund-UI, fast 7-års lagring på orderregister krävs enligt Bokföringslagen.
+**Uppgradering till full self-service (Fas 13 om volym kräver):**
+- Ny tabell `data_deletion_requests` (id, order_id, email, status, requested_at, completed_at)
+- Server Action `requestDataDeletion(orderId, email)` med signerad e-postlänk (HMAC + 24h expiry)
+- Admin-vy `/admin/data-requests`
 
-### 2.7 Verifiera footer-länkar
+### 2.7 Verifiera footer-länkar ✅
 
-**Fil:** `src/components/shared/footer.tsx:45-56`
-**Action:** efter 2.1–2.3 — verifiera att alla länkar fungerar och pekar på existerande sidor.
+**Fil:** `src/components/shared/footer.tsx`
+**Åtgärd:** `/privacy`, `/terms` och den nytillagda `/cookies` länkar nu alla till existerande sidor. `footer.cookies`-nyckel tillagd i `messages/en.json`.
 
 ---
 

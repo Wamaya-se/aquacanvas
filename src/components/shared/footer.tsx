@@ -54,6 +54,12 @@ export async function Footer() {
 				>
 					{t('terms')}
 				</Link>
+				<Link
+					href="/cookies"
+					className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground"
+				>
+					{t('cookies')}
+				</Link>
 			</nav>
 			</div>
 		</footer>
