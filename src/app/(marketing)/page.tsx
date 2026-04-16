@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { BeforeAfterSlider } from '@/components/shared/before-after-slider'
+import { getSiteUrl, getContactEmail } from '@/lib/env'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('metadata')
@@ -35,6 +36,7 @@ export default async function HomePage() {
 	const tProof = await getTranslations('socialProof')
 	const tTest = await getTranslations('testimonials')
 	const tFaq = await getTranslations('landingFaq')
+	const tAlt = await getTranslations('alt')
 
 	const steps = [
 		{
@@ -148,8 +150,8 @@ export default async function HomePage() {
 							<BeforeAfterSlider
 								beforeSrc="/images/hero-before.jpg"
 								afterSrc="/images/hero-after.png"
-								beforeAlt="Original photo of a cabin in the snow"
-								afterAlt="AI-generated watercolor artwork of the cabin on a canvas print"
+								beforeAlt={tAlt('heroBefore')}
+								afterAlt={tAlt('heroAfter')}
 								beforeLabel={tHero('beforeLabel')}
 								afterLabel={tHero('afterLabel')}
 								sliderAriaLabel={tHero('sliderAriaLabel')}
@@ -366,12 +368,12 @@ export default async function HomePage() {
 						'@context': 'https://schema.org',
 						'@type': 'Organization',
 						name: 'Aquacanvas',
-						url: 'https://aquacanvas.com',
+						url: getSiteUrl(),
 						description: tHero('subtitle'),
 						contactPoint: {
 							'@type': 'ContactPoint',
 							contactType: 'customer support',
-							email: 'hello@aquacanvas.com',
+							email: getContactEmail(),
 						},
 					}),
 				}}

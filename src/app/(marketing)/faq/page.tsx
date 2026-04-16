@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '@/components/ui/button'
+import { getSiteUrl } from '@/lib/env'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('faq')
@@ -30,6 +31,7 @@ interface FaqSection {
 
 export default async function FaqPage() {
 	const t = await getTranslations('faq')
+	const tBreadcrumbs = await getTranslations('breadcrumbs')
 
 	const sections: FaqSection[] = [
 		{
@@ -79,6 +81,7 @@ export default async function FaqPage() {
 		})),
 	}
 
+	const siteUrl = getSiteUrl()
 	const breadcrumbJsonLd = {
 		'@context': 'https://schema.org',
 		'@type': 'BreadcrumbList',
@@ -86,14 +89,14 @@ export default async function FaqPage() {
 			{
 				'@type': 'ListItem',
 				position: 1,
-				name: 'Home',
-				item: 'https://aquacanvas.com',
+				name: tBreadcrumbs('home'),
+				item: siteUrl,
 			},
 			{
 				'@type': 'ListItem',
 				position: 2,
-				name: 'FAQ',
-				item: 'https://aquacanvas.com/faq',
+				name: tBreadcrumbs('faq'),
+				item: `${siteUrl}/faq`,
 			},
 		],
 	}

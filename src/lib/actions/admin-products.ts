@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { productSchema, faqItemSchema } from '@/validators/product'
 import type { ActionResult } from '@/types/actions'
+import { zodIssuesToFieldErrors } from '@/lib/form-errors'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -96,13 +97,14 @@ function parseFaqFromFormData(formData: FormData): { question: string; answer: s
 	const faq: { question: string; answer: string }[] = []
 	let i = 0
 	while (formData.has(`faq_question_${i}`)) {
-		const question = (formData.get(`faq_question_${i}`) as string)?.trim() ?? ''
-		const answer = (formData.get(`faq_answer_${i}`) as string)?.trim() ?? ''
-		if (question && answer) {
-			const parsed = faqItemSchema.safeParse({ question, answer })
-			if (parsed.success) {
-				faq.push(parsed.data)
-			}
+		const rawQuestion = formData.get(`faq_question_${i}`)
+		const rawAnswer = formData.get(`faq_answer_${i}`)
+		const parsed = faqItemSchema.safeParse({
+			question: typeof rawQuestion === 'string' ? rawQuestion.trim() : '',
+			answer: typeof rawAnswer === 'string' ? rawAnswer.trim() : '',
+		})
+		if (parsed.success) {
+			faq.push(parsed.data)
 		}
 		i++
 	}
@@ -136,6 +138,7 @@ export async function createProduct(
 		return {
 			success: false,
 			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
 		}
 	}
 
@@ -166,7 +169,11 @@ export async function createProduct(
 	if (error) {
 		console.error('[createProduct]', error)
 		if (error.code === '23505') {
-			return { success: false, error: 'errors.slugTaken' }
+			return {
+				success: false,
+				error: 'errors.slugTaken',
+				fieldErrors: { slug: 'errors.slugTaken' },
+			}
 		}
 		return { success: false, error: 'errors.generic' }
 	}
@@ -220,7 +227,11 @@ export async function updateProduct(
 
 	const parsed = parseProductForm(formData)
 	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
+		return {
+			success: false,
+			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
+		}
 	}
 
 	const { data: existing } = await supabase
@@ -282,7 +293,11 @@ export async function updateProduct(
 	if (error) {
 		console.error('[updateProduct]', error)
 		if (error.code === '23505') {
-			return { success: false, error: 'errors.slugTaken' }
+			return {
+				success: false,
+				error: 'errors.slugTaken',
+				fieldErrors: { slug: 'errors.slugTaken' },
+			}
 		}
 		return { success: false, error: 'errors.generic' }
 	}

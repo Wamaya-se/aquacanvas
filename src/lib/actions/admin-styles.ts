@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { styleSchema } from '@/validators/style'
 import type { ActionResult } from '@/types/actions'
+import { zodIssuesToFieldErrors } from '@/lib/form-errors'
 
 async function requireAdmin() {
 	const supabase = await createClient()
@@ -39,7 +40,11 @@ export async function updateStyle(
 	})
 
 	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
+		return {
+			success: false,
+			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
+		}
 	}
 
 	const { error } = await supabase

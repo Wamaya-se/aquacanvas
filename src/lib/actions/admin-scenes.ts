@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sceneSchema } from '@/validators/scene'
 import type { ActionResult } from '@/types/actions'
+import { zodIssuesToFieldErrors } from '@/lib/form-errors'
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 const MAX_FILE_SIZE = 5 * 1024 * 1024
@@ -59,20 +60,36 @@ export async function createScene(
 
 	const parsed = parseFormData(formData)
 	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
+		return {
+			success: false,
+			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
+		}
 	}
 
 	const file = formData.get('image') as File | null
 	if (!file || file.size === 0) {
-		return { success: false, error: 'errors.noFileUploaded' }
+		return {
+			success: false,
+			error: 'errors.noFileUploaded',
+			fieldErrors: { image: 'errors.noFileUploaded' },
+		}
 	}
 
 	if (!ACCEPTED_TYPES.includes(file.type)) {
-		return { success: false, error: 'errors.invalidFileType' }
+		return {
+			success: false,
+			error: 'errors.invalidFileType',
+			fieldErrors: { image: 'errors.invalidFileType' },
+		}
 	}
 
 	if (file.size > MAX_FILE_SIZE) {
-		return { success: false, error: 'errors.fileTooLarge' }
+		return {
+			success: false,
+			error: 'errors.fileTooLarge',
+			fieldErrors: { image: 'errors.fileTooLarge' },
+		}
 	}
 
 	const adminDb = createAdminClient()
@@ -120,7 +137,11 @@ export async function updateScene(
 
 	const parsed = parseFormData(formData)
 	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
+		return {
+			success: false,
+			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
+		}
 	}
 
 	const adminDb = createAdminClient()
@@ -131,10 +152,18 @@ export async function updateScene(
 
 	if (file && file.size > 0) {
 		if (!ACCEPTED_TYPES.includes(file.type)) {
-			return { success: false, error: 'errors.invalidFileType' }
+			return {
+				success: false,
+				error: 'errors.invalidFileType',
+				fieldErrors: { image: 'errors.invalidFileType' },
+			}
 		}
 		if (file.size > MAX_FILE_SIZE) {
-			return { success: false, error: 'errors.fileTooLarge' }
+			return {
+				success: false,
+				error: 'errors.fileTooLarge',
+				fieldErrors: { image: 'errors.fileTooLarge' },
+			}
 		}
 
 		try {
@@ -143,7 +172,11 @@ export async function updateScene(
 			return { success: false, error: 'errors.uploadFailed' }
 		}
 	} else if (imageRemoved) {
-		return { success: false, error: 'errors.noFileUploaded' }
+		return {
+			success: false,
+			error: 'errors.noFileUploaded',
+			fieldErrors: { image: 'errors.noFileUploaded' },
+		}
 	}
 
 	const { error } = await adminDb

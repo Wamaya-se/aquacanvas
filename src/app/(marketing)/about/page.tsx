@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { Gem, Heart, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { getSiteUrl } from '@/lib/env'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('about')
@@ -21,6 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AboutPage() {
 	const t = await getTranslations('about')
+	const tBreadcrumbs = await getTranslations('breadcrumbs')
 
 	const values = [
 		{
@@ -40,6 +42,7 @@ export default async function AboutPage() {
 		},
 	]
 
+	const siteUrl = getSiteUrl()
 	const breadcrumbJsonLd = {
 		'@context': 'https://schema.org',
 		'@type': 'BreadcrumbList',
@@ -47,14 +50,14 @@ export default async function AboutPage() {
 			{
 				'@type': 'ListItem',
 				position: 1,
-				name: 'Home',
-				item: 'https://aquacanvas.com',
+				name: tBreadcrumbs('home'),
+				item: siteUrl,
 			},
 			{
 				'@type': 'ListItem',
 				position: 2,
-				name: 'About',
-				item: 'https://aquacanvas.com/about',
+				name: tBreadcrumbs('about'),
+				item: `${siteUrl}/about`,
 			},
 		],
 	}

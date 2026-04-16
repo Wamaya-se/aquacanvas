@@ -32,7 +32,7 @@ export function MobileNav({ items, isLoggedIn, isAdmin }: MobileNavProps) {
 
 			{isOpen && (
 				<div className="absolute left-0 right-0 top-full z-50 border-b border-outline-variant/10 bg-surface/95 backdrop-blur-[24px]">
-					<nav aria-label="Mobile" className="flex flex-col gap-1 px-6 py-4">
+					<nav aria-label={tNav('mobileAriaLabel')} className="flex flex-col gap-1 px-6 py-4">
 						{items.map((item) => (
 							<Link
 								key={item.href}

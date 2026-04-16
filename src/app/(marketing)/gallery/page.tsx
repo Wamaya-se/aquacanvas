@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '@/components/ui/button'
 import { BeforeAfterSlider } from '@/components/shared/before-after-slider'
+import { getSiteUrl } from '@/lib/env'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('gallery')
@@ -31,6 +32,8 @@ interface GalleryItem {
 export default async function GalleryPage() {
 	const t = await getTranslations('gallery')
 	const tHero = await getTranslations('hero')
+	const tAlt = await getTranslations('alt')
+	const tBreadcrumbs = await getTranslations('breadcrumbs')
 
 	const examples: GalleryItem[] = [
 		{
@@ -77,6 +80,7 @@ export default async function GalleryPage() {
 		},
 	]
 
+	const siteUrl = getSiteUrl()
 	const breadcrumbJsonLd = {
 		'@context': 'https://schema.org',
 		'@type': 'BreadcrumbList',
@@ -84,14 +88,14 @@ export default async function GalleryPage() {
 			{
 				'@type': 'ListItem',
 				position: 1,
-				name: 'Home',
-				item: 'https://aquacanvas.com',
+				name: tBreadcrumbs('home'),
+				item: siteUrl,
 			},
 			{
 				'@type': 'ListItem',
 				position: 2,
-				name: 'Gallery',
-				item: 'https://aquacanvas.com/gallery',
+				name: tBreadcrumbs('gallery'),
+				item: `${siteUrl}/gallery`,
 			},
 		],
 	}
@@ -121,8 +125,8 @@ export default async function GalleryPage() {
 					<BeforeAfterSlider
 						beforeSrc={examples[0].beforeSrc}
 						afterSrc={examples[0].afterSrc}
-						beforeAlt={`${examples[0].title} — original photo`}
-						afterAlt={`${examples[0].title} — AI-generated artwork`}
+						beforeAlt={tAlt('galleryOriginal', { title: examples[0].title })}
+						afterAlt={tAlt('galleryArtwork', { title: examples[0].title })}
 						beforeLabel={tHero('beforeLabel')}
 						afterLabel={tHero('afterLabel')}
 						sliderAriaLabel={t('sliderAriaLabel')}
@@ -148,7 +152,7 @@ export default async function GalleryPage() {
 									<div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-surface-dim" style={{ boxShadow: '0 8px 40px oklch(0.2 0.02 260 / 0.06)' }}>
 										<Image
 											src={item.beforeSrc}
-											alt={`${item.title} — original photo`}
+											alt={tAlt('galleryOriginal', { title: item.title })}
 											fill
 											sizes="(max-width: 768px) 50vw, 25vw"
 											className="object-cover"
@@ -161,7 +165,7 @@ export default async function GalleryPage() {
 									<div className="relative aspect-[16/9] overflow-hidden rounded-xl bg-surface-dim" style={{ boxShadow: '0 8px 40px oklch(0.2 0.02 260 / 0.06)' }}>
 										<Image
 											src={item.afterSrc}
-											alt={`${item.title} — AI-generated artwork`}
+											alt={tAlt('galleryArtwork', { title: item.title })}
 											fill
 											sizes="(max-width: 768px) 50vw, 25vw"
 											className="object-cover"

@@ -10,10 +10,12 @@ export async function generateMetadata(): Promise<Metadata> {
 	}
 }
 
-export default function RegisterPage() {
+export default async function RegisterPage() {
+	const t = await getTranslations('auth')
+
 	return (
 		<>
-			<h1 className="sr-only">Sign Up</h1>
+			<h1 className="sr-only">{t('registerTitle')}</h1>
 			<RegisterForm />
 		</>
 	)

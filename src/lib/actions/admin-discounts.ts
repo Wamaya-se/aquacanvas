@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getStripe } from '@/lib/stripe'
 import { createDiscountSchema } from '@/validators/discount'
 import type { ActionResult } from '@/types/actions'
+import { zodIssuesToFieldErrors } from '@/lib/form-errors'
 
 async function requireAdmin() {
 	const supabase = await createClient()
@@ -32,7 +33,11 @@ export async function createDiscountCode(
 	})
 
 	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
+		return {
+			success: false,
+			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
+		}
 	}
 
 	const stripe = getStripe()
@@ -72,7 +77,11 @@ export async function createDiscountCode(
 		if (error) {
 			console.error('[createDiscountCode] DB insert', error)
 			if (error.code === '23505') {
-				return { success: false, error: 'errors.discountCodeTaken' }
+				return {
+					success: false,
+					error: 'errors.discountCodeTaken',
+					fieldErrors: { code: 'errors.discountCodeTaken' },
+				}
 			}
 			return { success: false, error: 'errors.generic' }
 		}

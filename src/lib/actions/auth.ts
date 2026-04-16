@@ -7,6 +7,7 @@ import { loginSchema, registerSchema } from '@/validators/auth'
 import type { ActionResult } from '@/types/actions'
 import { getSiteUrl } from '@/lib/env'
 import { isSafePath } from '@/lib/safe-redirect'
+import { zodIssuesToFieldErrors } from '@/lib/form-errors'
 
 export async function login(
 	formData: FormData,
@@ -15,16 +16,9 @@ export async function login(
 	const parsed = loginSchema.safeParse(raw)
 
 	if (!parsed.success) {
-		const firstIssue = parsed.error.issues[0]
-		const field = firstIssue?.path[0] as string | undefined
-
-		if (field === 'email') {
-			return { success: false, error: 'errors.invalidEmail' }
-		}
-		if (field === 'password') {
-			return { success: false, error: 'errors.passwordTooShort' }
-		}
-		return { success: false, error: 'errors.invalidInput' }
+		const fieldErrors = zodIssuesToFieldErrors(parsed.error)
+		const firstKey = Object.values(fieldErrors)[0] ?? 'errors.invalidInput'
+		return { success: false, error: firstKey, fieldErrors }
 	}
 
 	const supabase = await createClient()
@@ -55,19 +49,9 @@ export async function register(
 	const parsed = registerSchema.safeParse(raw)
 
 	if (!parsed.success) {
-		const firstIssue = parsed.error.issues[0]
-		const field = firstIssue?.path[0] as string | undefined
-
-		if (field === 'email') {
-			return { success: false, error: 'errors.invalidEmail' }
-		}
-		if (field === 'password') {
-			return { success: false, error: 'errors.passwordTooShort' }
-		}
-		if (field === 'confirmPassword') {
-			return { success: false, error: 'errors.passwordMismatch' }
-		}
-		return { success: false, error: 'errors.invalidInput' }
+		const fieldErrors = zodIssuesToFieldErrors(parsed.error)
+		const firstKey = Object.values(fieldErrors)[0] ?? 'errors.invalidInput'
+		return { success: false, error: firstKey, fieldErrors }
 	}
 
 	const supabase = await createClient()
@@ -83,7 +67,11 @@ export async function register(
 	if (error) {
 		console.error('[register]', error.message)
 		if (error.message.toLowerCase().includes('already registered')) {
-			return { success: false, error: 'errors.emailTaken' }
+			return {
+				success: false,
+				error: 'errors.emailTaken',
+				fieldErrors: { email: 'errors.emailTaken' },
+			}
 		}
 		return { success: false, error: 'errors.registrationFailed' }
 	}

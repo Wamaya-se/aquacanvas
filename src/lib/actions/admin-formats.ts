@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { formatSchema } from '@/validators/format'
 import type { ActionResult } from '@/types/actions'
+import { zodIssuesToFieldErrors } from '@/lib/form-errors'
 
 async function requireAdmin() {
 	const supabase = await createClient()
@@ -38,7 +39,11 @@ export async function createFormat(
 
 	const parsed = parseFormData(formData)
 	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
+		return {
+			success: false,
+			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
+		}
 	}
 
 	const { data, error } = await supabase
@@ -61,7 +66,11 @@ export async function createFormat(
 	if (error) {
 		console.error('[createFormat]', error)
 		if (error.code === '23505') {
-			return { success: false, error: 'errors.slugTaken' }
+			return {
+				success: false,
+				error: 'errors.slugTaken',
+				fieldErrors: { slug: 'errors.slugTaken' },
+			}
 		}
 		return { success: false, error: 'errors.generic' }
 	}
@@ -84,7 +93,11 @@ export async function updateFormat(
 
 	const parsed = parseFormData(formData)
 	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
+		return {
+			success: false,
+			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
+		}
 	}
 
 	const { error } = await supabase
@@ -106,7 +119,11 @@ export async function updateFormat(
 	if (error) {
 		console.error('[updateFormat]', error)
 		if (error.code === '23505') {
-			return { success: false, error: 'errors.slugTaken' }
+			return {
+				success: false,
+				error: 'errors.slugTaken',
+				fieldErrors: { slug: 'errors.slugTaken' },
+			}
 		}
 		return { success: false, error: 'errors.generic' }
 	}

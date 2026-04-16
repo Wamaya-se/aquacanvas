@@ -7,6 +7,7 @@ import { BeforeAfterSlider } from '@/components/shared/before-after-slider'
 import { CreateFlow } from '@/components/shop/create-flow'
 import type { StyleOption } from '@/components/shop/style-picker'
 import type { FormatOption } from '@/components/shop/format-picker'
+import { getSiteUrl } from '@/lib/env'
 
 interface ProductPageProps {
 	params: Promise<{ slug: string }>
@@ -54,6 +55,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
 	const product = await getProduct(slug)
 	const t = await getTranslations('productPage')
 	const tHero = await getTranslations('hero')
+	const tAlt = await getTranslations('alt')
+	const tBreadcrumbs = await getTranslations('breadcrumbs')
 
 	if (!product) notFound()
 
@@ -100,6 +103,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
 	const faq = (product.faq ?? []) as { question: string; answer: string }[]
 
+	const siteUrl = getSiteUrl()
 	const breadcrumbJsonLd = {
 		'@context': 'https://schema.org',
 		'@type': 'BreadcrumbList',
@@ -107,14 +111,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
 			{
 				'@type': 'ListItem',
 				position: 1,
-				name: 'Home',
-				item: 'https://aquacanvas.com',
+				name: tBreadcrumbs('home'),
+				item: siteUrl,
 			},
 			{
 				'@type': 'ListItem',
 				position: 2,
 				name: product.name,
-				item: `https://aquacanvas.com/p/${slug}`,
+				item: `${siteUrl}/p/${slug}`,
 			},
 		],
 	}
@@ -189,7 +193,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 						<div className="relative mx-auto mt-12 aspect-[16/9] max-w-3xl overflow-hidden rounded-xl" style={{ boxShadow: '0 8px 40px oklch(0.2 0.02 260 / 0.06)' }}>
 							<Image
 								src={product.hero_image_url}
-								alt={product.name}
+								alt={tAlt('productHero', { name: product.name })}
 								fill
 								sizes="(max-width: 768px) 100vw, 768px"
 								className="object-cover"
@@ -207,8 +211,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
 						<BeforeAfterSlider
 							beforeSrc={product.example_before}
 							afterSrc={product.example_after}
-							beforeAlt={`${product.name} — original photo`}
-							afterAlt={`${product.name} — AI-generated artwork`}
+							beforeAlt={tAlt('productOriginal', { name: product.name })}
+							afterAlt={tAlt('productArtwork', { name: product.name })}
 							beforeLabel={tHero('beforeLabel')}
 							afterLabel={tHero('afterLabel')}
 							sliderAriaLabel={tHero('sliderAriaLabel')}

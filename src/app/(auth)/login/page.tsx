@@ -11,10 +11,12 @@ export async function generateMetadata(): Promise<Metadata> {
 	}
 }
 
-export default function LoginPage() {
+export default async function LoginPage() {
+	const t = await getTranslations('auth')
+
 	return (
 		<>
-			<h1 className="sr-only">Sign In</h1>
+			<h1 className="sr-only">{t('loginTitle')}</h1>
 			<Suspense>
 				<LoginForm />
 			</Suspense>

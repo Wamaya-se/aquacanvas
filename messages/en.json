@@ -13,7 +13,8 @@
 		"close": "Close",
 		"learnMore": "Learn more",
 		"getStarted": "Get started",
-		"skipToContent": "Skip to main content"
+		"skipToContent": "Skip to main content",
+		"themeToggle": "Current theme: {theme}. Click to switch."
 	},
 	"nav": {
 		"home": "Home",
@@ -27,7 +28,25 @@
 		"register": "Sign up",
 		"admin": "Admin",
 		"dashboard": "Dashboard",
-		"logout": "Log out"
+		"logout": "Log out",
+		"mainAriaLabel": "Main",
+		"mobileAriaLabel": "Mobile"
+	},
+	"breadcrumbs": {
+		"home": "Home",
+		"gallery": "Gallery",
+		"about": "About",
+		"faq": "FAQ",
+		"contact": "Contact"
+	},
+	"alt": {
+		"heroBefore": "Original photo of a cabin in the snow",
+		"heroAfter": "AI-generated watercolor artwork of the cabin on a canvas print",
+		"galleryOriginal": "{title} — original photo",
+		"galleryArtwork": "{title} — AI-generated artwork",
+		"productOriginal": "{name} — original photo",
+		"productArtwork": "{name} — AI-generated artwork",
+		"productHero": "Sample artwork for {name}"
 	},
 	"hero": {
 		"title": "Turn Your Photos Into Stunning Art",

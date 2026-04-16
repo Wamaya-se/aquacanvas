@@ -10,6 +10,7 @@ import {
 	resetPasswordSchema,
 } from '@/validators/user'
 import type { ActionResult } from '@/types/actions'
+import { zodIssuesToFieldErrors } from '@/lib/form-errors'
 import { z } from 'zod'
 
 async function requireAdmin() {
@@ -34,7 +35,11 @@ export async function createUser(
 	})
 
 	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
+		return {
+			success: false,
+			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
+		}
 	}
 
 	const admin = createAdminClient()
@@ -54,7 +59,11 @@ export async function createUser(
 	if (authError) {
 		console.error('[createUser]', authError.message)
 		if (authError.message.toLowerCase().includes('already been registered')) {
-			return { success: false, error: 'errors.emailTaken' }
+			return {
+				success: false,
+				error: 'errors.emailTaken',
+				fieldErrors: { email: 'errors.emailTaken' },
+			}
 		}
 		return { success: false, error: 'errors.userCreationFailed' }
 	}
@@ -84,7 +93,11 @@ export async function updateUser(
 	})
 
 	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
+		return {
+			success: false,
+			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
+		}
 	}
 
 	const { error: profileError } = await supabase
@@ -114,7 +127,11 @@ export async function updateUser(
 	if (authError) {
 		console.error('[updateUser] auth', authError.message)
 		if (authError.message.toLowerCase().includes('already been registered')) {
-			return { success: false, error: 'errors.emailTaken' }
+			return {
+				success: false,
+				error: 'errors.emailTaken',
+				fieldErrors: { email: 'errors.emailTaken' },
+			}
 		}
 		return { success: false, error: 'errors.generic' }
 	}
@@ -135,7 +152,11 @@ export async function resetUserPassword(
 	})
 
 	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
+		return {
+			success: false,
+			error: 'errors.invalidInput',
+			fieldErrors: zodIssuesToFieldErrors(parsed.error),
+		}
 	}
 
 	const admin = createAdminClient()

@@ -33,7 +33,7 @@ export async function Header() {
 						Aquacanvas
 					</Link>
 
-					<nav aria-label="Main" className="hidden md:flex md:items-center md:gap-1">
+					<nav aria-label={t('mainAriaLabel')} className="hidden md:flex md:items-center md:gap-1">
 						{navItems.map((item) => (
 							<Link
 								key={item.href}

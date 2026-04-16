@@ -19,6 +19,7 @@ import {
 import { ImageUploadField } from '@/components/admin/image-upload-field'
 import { createProduct, updateProduct } from '@/lib/actions/admin-products'
 import type { ActionResult } from '@/types/actions'
+import { useActionError } from '@/hooks/use-action-error'
 
 interface FaqItem {
 	question: string
@@ -57,7 +58,7 @@ interface ProductFormProps {
 export function ProductForm({ product, styles }: ProductFormProps) {
 	const t = useTranslations('admin')
 	const tCommon = useTranslations('common')
-	const tErrors = useTranslations('errors')
+	const translateError = useActionError()
 	const router = useRouter()
 	const formRef = useRef<HTMLFormElement>(null)
 
@@ -105,14 +106,20 @@ export function ProductForm({ product, styles }: ProductFormProps) {
 		)
 	}
 
+	const fieldErrors = state && !state.success ? state.fieldErrors ?? {} : {}
+	const formError =
+		state && !state.success && !Object.keys(fieldErrors).length
+			? state.error
+			: null
+
 	return (
 		<form ref={formRef} action={formAction} className="space-y-8">
-			{state && !state.success && (
+			{formError && (
 				<div
 					role="alert"
 					className="rounded-lg bg-destructive/10 px-4 py-3 font-sans text-sm text-destructive"
 				>
-					{tErrors(state.error.replace('errors.', '') as 'generic')}
+					{translateError(formError)}
 				</div>
 			)}
 
@@ -125,7 +132,20 @@ export function ProductForm({ product, styles }: ProductFormProps) {
 						required
 						maxLength={100}
 						defaultValue={product?.name ?? ''}
+						aria-invalid={fieldErrors.name ? true : undefined}
+						aria-describedby={
+							fieldErrors.name ? 'product-name-error' : undefined
+						}
 					/>
+					{fieldErrors.name && (
+						<p
+							id="product-name-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.name)}
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
@@ -137,7 +157,20 @@ export function ProductForm({ product, styles }: ProductFormProps) {
 						maxLength={100}
 						pattern="[a-z0-9-]+"
 						defaultValue={product?.slug ?? ''}
+						aria-invalid={fieldErrors.slug ? true : undefined}
+						aria-describedby={
+							fieldErrors.slug ? 'product-slug-error' : undefined
+						}
 					/>
+					{fieldErrors.slug && (
+						<p
+							id="product-slug-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.slug)}
+						</p>
+					)}
 				</div>
 			</div>
 
@@ -149,7 +182,20 @@ export function ProductForm({ product, styles }: ProductFormProps) {
 					required
 					maxLength={300}
 					defaultValue={product?.headline ?? ''}
+					aria-invalid={fieldErrors.headline ? true : undefined}
+					aria-describedby={
+						fieldErrors.headline ? 'product-headline-error' : undefined
+					}
 				/>
+				{fieldErrors.headline && (
+					<p
+						id="product-headline-error"
+						role="alert"
+						className="text-sm text-destructive"
+					>
+						{translateError(fieldErrors.headline)}
+					</p>
+				)}
 			</div>
 
 			<div className="space-y-2">

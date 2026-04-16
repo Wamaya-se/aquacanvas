@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { Mail, Clock } from 'lucide-react'
 import { ContactForm } from '@/components/shared/contact-form'
+import { getSiteUrl } from '@/lib/env'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('contact')
@@ -20,7 +21,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function ContactPage() {
 	const t = await getTranslations('contact')
+	const tBreadcrumbs = await getTranslations('breadcrumbs')
 
+	const siteUrl = getSiteUrl()
 	const breadcrumbJsonLd = {
 		'@context': 'https://schema.org',
 		'@type': 'BreadcrumbList',
@@ -28,14 +31,14 @@ export default async function ContactPage() {
 			{
 				'@type': 'ListItem',
 				position: 1,
-				name: 'Home',
-				item: 'https://aquacanvas.com',
+				name: tBreadcrumbs('home'),
+				item: siteUrl,
 			},
 			{
 				'@type': 'ListItem',
 				position: 2,
-				name: 'Contact',
-				item: 'https://aquacanvas.com/contact',
+				name: tBreadcrumbs('contact'),
+				item: `${siteUrl}/contact`,
 			},
 		],
 	}

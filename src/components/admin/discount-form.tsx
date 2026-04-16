@@ -15,11 +15,12 @@ import {
 } from '@/components/ui/select'
 import { createDiscountCode } from '@/lib/actions/admin-discounts'
 import type { ActionResult } from '@/types/actions'
+import { useActionError } from '@/hooks/use-action-error'
 
 export function DiscountForm() {
 	const t = useTranslations('admin')
 	const tCommon = useTranslations('common')
-	const tErrors = useTranslations('errors')
+	const translateError = useActionError()
 	const router = useRouter()
 	const [discountType, setDiscountType] = useState<'percent' | 'amount'>('percent')
 
@@ -36,14 +37,20 @@ export function DiscountForm() {
 		}
 	}, [state, router])
 
+	const fieldErrors = state && !state.success ? state.fieldErrors ?? {} : {}
+	const formError =
+		state && !state.success && !Object.keys(fieldErrors).length
+			? state.error
+			: null
+
 	return (
 		<form action={formAction} className="space-y-6">
-			{state && !state.success && (
+			{formError && (
 				<div
 					role="alert"
 					className="rounded-lg bg-destructive/10 px-4 py-3 font-sans text-sm text-destructive"
 				>
-					{tErrors(state.error.replace('errors.', '') as 'generic')}
+					{translateError(formError)}
 				</div>
 			)}
 
@@ -58,10 +65,27 @@ export function DiscountForm() {
 					placeholder="SUMMER20"
 					className="uppercase"
 					onChange={(e) => { e.target.value = e.target.value.toUpperCase() }}
+					aria-invalid={fieldErrors.code ? true : undefined}
+					aria-describedby={
+						fieldErrors.code ? 'discount-code-error' : 'discount-code-hint'
+					}
 				/>
-				<p className="font-sans text-xs text-muted-foreground">
-					{t('discountCodeHint')}
-				</p>
+				{fieldErrors.code ? (
+					<p
+						id="discount-code-error"
+						role="alert"
+						className="font-sans text-xs text-destructive"
+					>
+						{translateError(fieldErrors.code)}
+					</p>
+				) : (
+					<p
+						id="discount-code-hint"
+						className="font-sans text-xs text-muted-foreground"
+					>
+						{t('discountCodeHint')}
+					</p>
+				)}
 			</div>
 
 			<div className="grid gap-6 sm:grid-cols-2">
@@ -93,7 +117,22 @@ export function DiscountForm() {
 							max={100}
 							required
 							placeholder="20"
+							aria-invalid={fieldErrors.discountPercent ? true : undefined}
+							aria-describedby={
+								fieldErrors.discountPercent
+									? 'discount-percent-error'
+									: undefined
+							}
 						/>
+						{fieldErrors.discountPercent && (
+							<p
+								id="discount-percent-error"
+								role="alert"
+								className="font-sans text-xs text-destructive"
+							>
+								{translateError(fieldErrors.discountPercent)}
+							</p>
+						)}
 					</div>
 				) : (
 					<div className="space-y-2">
@@ -105,10 +144,29 @@ export function DiscountForm() {
 							min={1}
 							required
 							placeholder="50"
+							aria-invalid={fieldErrors.discountAmountSek ? true : undefined}
+							aria-describedby={
+								fieldErrors.discountAmountSek
+									? 'discount-amount-error'
+									: 'discount-amount-hint'
+							}
 						/>
-						<p className="font-sans text-xs text-muted-foreground">
-							{t('discountAmountHint')}
-						</p>
+						{fieldErrors.discountAmountSek ? (
+							<p
+								id="discount-amount-error"
+								role="alert"
+								className="font-sans text-xs text-destructive"
+							>
+								{translateError(fieldErrors.discountAmountSek)}
+							</p>
+						) : (
+							<p
+								id="discount-amount-hint"
+								className="font-sans text-xs text-muted-foreground"
+							>
+								{t('discountAmountHint')}
+							</p>
+						)}
 					</div>
 				)}
 			</div>

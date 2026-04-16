@@ -42,6 +42,10 @@ export function getAdminEmail(): string {
 	return process.env.ADMIN_NOTIFICATION_EMAIL ?? 'admin@aquacanvas.com'
 }
 
+export function getContactEmail(): string {
+	return process.env.CONTACT_EMAIL ?? 'support@aquacanvas.com'
+}
+
 export const env = {
 	get siteUrl() {
 		return getSiteUrl()
@@ -69,5 +73,8 @@ export const env = {
 	},
 	get adminEmail() {
 		return getAdminEmail()
+	},
+	get contactEmail() {
+		return getContactEmail()
 	},
 } as const

@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-16 (Batch 2 — Juridik & GDPR klar) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-16 (Batch 3 — i18n & a11y-städning klar) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** Fas 12 · Batch 3 — i18n & a11y-städning (se nedan).
+**Nästa upp:** Fas 12 · Batch 4 — SEO + observability (se nedan).
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
 
@@ -270,22 +270,22 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 - [x] Dataradering-flöde (minimum): dokumenterat i `/privacy` — email `support@aquacanvas.com` med order-ID + e-post → manuell radering inom 30 dagar (GDPR Art. 12(3)). Full Server Action + admin-vy flaggad till Fas 13 om volym kräver.
 - [x] Footer-länkar verifierade + `/cookies` tillagd i `src/components/shared/footer.tsx`
 
-### Batch 3 — i18n & a11y-städning 🟡
+### Batch 3 — i18n & a11y-städning ✅
 
-> **Status:** ⏳ Ej startad · **Mål:** Inga hårdkodade strängar, semantiskt korrekt landmark-struktur.
+> **Status:** ✅ Klar · **Mål:** Inga hårdkodade strängar, semantiskt korrekt landmark-struktur.
 
-- [ ] Auth-rubriker via i18n (`src/app/(auth)/login/page.tsx:17`, `register/page.tsx:16`)
-- [ ] Hero/gallery/product `alt`-texter via i18n
-- [ ] `aria-label` på `<nav>`-element (`header.tsx:36`, `mobile-nav.tsx:35`)
-- [ ] Theme toggle `aria-label` (`theme-toggle.tsx:44`)
-- [ ] Loading-knapptext `"..."` → `common.loading` (`login-form.tsx:96`, `register-form.tsx:92`)
-- [ ] JSON-LD breadcrumb-labels översatta + `getSiteUrl()` istället för hårdkodad domän (`p/[slug]:103`, `gallery:80`, `about:43`, `faq:82`, `contact`)
-- [ ] Organization JSON-LD läser från env (`page.tsx:362-376`)
-- [ ] Fixa nästlad `<main>` + duplikat `#main-content` i error-boundaries (`(marketing)/error.tsx:14`, `(shop)/error.tsx:14`, `(auth)/error.tsx:13`) — använd `<div>`-wrapper som admin/dashboard
-- [ ] Konsekvent `aria-invalid` + `aria-describedby` på alla forms (register-form + admin-formulär)
-- [ ] Login: ersätt brittling `state.error?.includes('email')` med strukturerat fält-fel
-- [ ] FAQ-fält: byt `as string` mot Zod-parse (`admin-products.ts:99-100`)
-- [ ] Ersätt `text-white` i `generation-result.tsx:334` med theme-token
+- [x] Auth-rubriker via i18n (`src/app/(auth)/login/page.tsx`, `register/page.tsx`)
+- [x] Hero/gallery/product `alt`-texter via i18n (ny `alt`-namespace i `messages/en.json`)
+- [x] `aria-label` på `<nav>`-element (`header.tsx`, `mobile-nav.tsx`)
+- [x] Theme toggle `aria-label` via `common.themeToggle`
+- [x] Loading-knapptext `"..."` → `common.loading` (login/register)
+- [x] JSON-LD breadcrumb-labels översatta + `getSiteUrl()` i alla marketing-sidor
+- [x] Organization JSON-LD läser från env (`getSiteUrl()` + `getContactEmail()`)
+- [x] Fixade nästlad `<main>` i marketing/shop/auth error-boundaries (använder `<div>` nu)
+- [x] Konsekvent `aria-invalid` + `aria-describedby` på auth + admin-formulär (format, scene, product, discount, user, style + image-upload)
+- [x] Strukturerad `fieldErrors`-pipeline: `ActionResult.fieldErrors` + `zodIssuesToFieldErrors`-helper → alla Server Actions returnerar per-fält i18n-nycklar
+- [x] FAQ-fält: ersatt `as string`-cast med typsäker `formData.get` + Zod-parse
+- [x] Hårdkodad `text-white` → ny `--on-scrim`-token (`generation-result.tsx`, `environment-preview-gallery.tsx`)
 
 ### Batch 4 — SEO + observability 🟡
 

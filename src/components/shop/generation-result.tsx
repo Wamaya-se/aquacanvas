@@ -331,8 +331,8 @@ function ClickableImage({ src, alt, hintText, onClick }: ClickableImageProps) {
 				/>
 				<div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100">
 					<div className="flex items-center gap-2 rounded-lg bg-black/60 px-3 py-1.5">
-						<Expand className="size-4 text-white" aria-hidden="true" />
-						<span className="font-sans text-xs font-medium text-white">
+						<Expand className="size-4 text-on-scrim" aria-hidden="true" />
+						<span className="font-sans text-xs font-medium text-on-scrim">
 							{hintText}
 						</span>
 					</div>
@@ -399,8 +399,8 @@ function CanvasMockup({ src, alt, hintText, onClick }: CanvasMockupProps) {
 
 				<div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
 					<div className="flex items-center gap-2 rounded-lg bg-black/60 px-3 py-1.5">
-						<Expand className="size-4 text-white" aria-hidden="true" />
-						<span className="font-sans text-xs font-medium text-white">
+						<Expand className="size-4 text-on-scrim" aria-hidden="true" />
+						<span className="font-sans text-xs font-medium text-on-scrim">
 							{hintText}
 						</span>
 					</div>

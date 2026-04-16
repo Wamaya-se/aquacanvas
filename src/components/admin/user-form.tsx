@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select'
 import { createUser, updateUser } from '@/lib/actions/admin-users'
 import type { ActionResult } from '@/types/actions'
+import { useActionError } from '@/hooks/use-action-error'
 
 interface UserData {
 	id: string
@@ -30,7 +31,7 @@ interface UserFormProps {
 export function UserForm({ user }: UserFormProps) {
 	const t = useTranslations('admin')
 	const tCommon = useTranslations('common')
-	const tErrors = useTranslations('errors')
+	const translateError = useActionError()
 	const router = useRouter()
 
 	const isEditing = !!user
@@ -45,7 +46,7 @@ export function UserForm({ user }: UserFormProps) {
 			if (result.success) {
 				return { success: true, data: { id: user.id } }
 			}
-			return { success: false, error: result.error }
+			return result
 		}
 		return createUser(formData)
 	}
@@ -58,14 +59,20 @@ export function UserForm({ user }: UserFormProps) {
 		}
 	}, [state, router])
 
+	const fieldErrors = state && !state.success ? state.fieldErrors ?? {} : {}
+	const formError =
+		state && !state.success && !Object.keys(fieldErrors).length
+			? state.error
+			: null
+
 	return (
 		<form action={formAction} className="space-y-8">
-			{state && !state.success && (
+			{formError && (
 				<div
 					role="alert"
 					className="rounded-lg bg-destructive/10 px-4 py-3 font-sans text-sm text-destructive"
 				>
-					{tErrors(state.error.replace('errors.', '') as 'generic')}
+					{translateError(formError)}
 				</div>
 			)}
 
@@ -80,7 +87,20 @@ export function UserForm({ user }: UserFormProps) {
 						maxLength={320}
 						defaultValue={user?.email ?? ''}
 						autoComplete="off"
+						aria-invalid={fieldErrors.email ? true : undefined}
+						aria-describedby={
+							fieldErrors.email ? 'user-email-error' : undefined
+						}
 					/>
+					{fieldErrors.email && (
+						<p
+							id="user-email-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.email)}
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
@@ -90,7 +110,20 @@ export function UserForm({ user }: UserFormProps) {
 						name="displayName"
 						maxLength={100}
 						defaultValue={user?.display_name ?? ''}
+						aria-invalid={fieldErrors.displayName ? true : undefined}
+						aria-describedby={
+							fieldErrors.displayName ? 'user-display-name-error' : undefined
+						}
 					/>
+					{fieldErrors.displayName && (
+						<p
+							id="user-display-name-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.displayName)}
+						</p>
+					)}
 				</div>
 			</div>
 
@@ -105,7 +138,20 @@ export function UserForm({ user }: UserFormProps) {
 						minLength={8}
 						maxLength={128}
 						autoComplete="new-password"
+						aria-invalid={fieldErrors.password ? true : undefined}
+						aria-describedby={
+							fieldErrors.password ? 'user-password-error' : undefined
+						}
 					/>
+					{fieldErrors.password && (
+						<p
+							id="user-password-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.password)}
+						</p>
+					)}
 				</div>
 			)}
 

@@ -44,6 +44,9 @@
   --success: #16a34a;
   --warning: #d97706;
 
+  /* Static — foreground on dark scrim/overlay (theme-independent) */
+  --on-scrim: #ffffff;
+
   --ring: #034f46;
 
   /* Shadcn-compatible aliases (bg-primary, bg-input, bg-background, etc.) */
@@ -138,6 +141,7 @@
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-on-scrim: var(--on-scrim);
 
   --color-ring: var(--ring);
 

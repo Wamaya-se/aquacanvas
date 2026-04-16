@@ -23,6 +23,7 @@ const initialState: ActionResult = { success: true, data: undefined }
 
 export function RegisterForm() {
 	const t = useTranslations('auth')
+	const tCommon = useTranslations('common')
 	const translateError = useActionError()
 
 	async function handleRegister(
@@ -37,6 +38,10 @@ export function RegisterForm() {
 		initialState,
 	)
 
+	const fieldErrors = !state.success ? state.fieldErrors ?? {} : {}
+	const formError =
+		!state.success && !Object.keys(fieldErrors).length ? state.error : null
+
 	return (
 		<Card>
 			<CardHeader>
@@ -45,9 +50,9 @@ export function RegisterForm() {
 			</CardHeader>
 			<CardContent>
 				<form action={formAction} className="flex flex-col gap-4">
-					{!state.success && state.error && (
+					{formError && (
 						<p role="alert" className="text-sm text-destructive">
-							{translateError(state.error)}
+							{translateError(formError)}
 						</p>
 					)}
 
@@ -59,7 +64,20 @@ export function RegisterForm() {
 							type="email"
 							autoComplete="email"
 							required
+							aria-invalid={fieldErrors.email ? true : undefined}
+							aria-describedby={
+								fieldErrors.email ? 'register-email-error' : undefined
+							}
 						/>
+						{fieldErrors.email && (
+							<p
+								id="register-email-error"
+								role="alert"
+								className="text-sm text-destructive"
+							>
+								{translateError(fieldErrors.email)}
+							</p>
+						)}
 					</div>
 
 					<div className="flex flex-col gap-2">
@@ -71,7 +89,20 @@ export function RegisterForm() {
 							autoComplete="new-password"
 							required
 							minLength={8}
+							aria-invalid={fieldErrors.password ? true : undefined}
+							aria-describedby={
+								fieldErrors.password ? 'register-password-error' : undefined
+							}
 						/>
+						{fieldErrors.password && (
+							<p
+								id="register-password-error"
+								role="alert"
+								className="text-sm text-destructive"
+							>
+								{translateError(fieldErrors.password)}
+							</p>
+						)}
 					</div>
 
 					<div className="flex flex-col gap-2">
@@ -85,11 +116,26 @@ export function RegisterForm() {
 							autoComplete="new-password"
 							required
 							minLength={8}
+							aria-invalid={fieldErrors.confirmPassword ? true : undefined}
+							aria-describedby={
+								fieldErrors.confirmPassword
+									? 'register-confirm-password-error'
+									: undefined
+							}
 						/>
+						{fieldErrors.confirmPassword && (
+							<p
+								id="register-confirm-password-error"
+								role="alert"
+								className="text-sm text-destructive"
+							>
+								{translateError(fieldErrors.confirmPassword)}
+							</p>
+						)}
 					</div>
 
 					<Button type="submit" className="mt-2 w-full" disabled={isPending}>
-						{isPending ? '...' : t('registerButton')}
+						{isPending ? tCommon('loading') : t('registerButton')}
 					</Button>
 				</form>
 			</CardContent>

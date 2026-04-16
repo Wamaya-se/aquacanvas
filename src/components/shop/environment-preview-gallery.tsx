@@ -266,8 +266,8 @@ function PreviewCard({ preview, onClick }: PreviewCardProps) {
 						{isClickable && (
 							<div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover:bg-black/20 group-hover:opacity-100">
 								<div className="flex items-center gap-2 rounded-lg bg-black/60 px-3 py-1.5">
-									<Expand className="size-4 text-white" aria-hidden="true" />
-									<span className="font-sans text-xs font-medium text-white">
+									<Expand className="size-4 text-on-scrim" aria-hidden="true" />
+									<span className="font-sans text-xs font-medium text-on-scrim">
 										{t('zoomImage')}
 									</span>
 								</div>

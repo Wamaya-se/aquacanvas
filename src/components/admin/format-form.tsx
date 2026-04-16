@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { createFormat, updateFormat } from '@/lib/actions/admin-formats'
 import type { ActionResult } from '@/types/actions'
+import { useActionError } from '@/hooks/use-action-error'
 
 import type { Orientation } from '@/types/supabase'
 
@@ -34,7 +35,7 @@ interface FormatFormProps {
 export function FormatForm({ format }: FormatFormProps) {
 	const t = useTranslations('admin')
 	const tCommon = useTranslations('common')
-	const tErrors = useTranslations('errors')
+	const translateError = useActionError()
 	const router = useRouter()
 	const isEditing = !!format
 
@@ -58,14 +59,20 @@ export function FormatForm({ format }: FormatFormProps) {
 		}
 	}, [state, router])
 
+	const fieldErrors = state && !state.success ? state.fieldErrors ?? {} : {}
+	const formError =
+		state && !state.success && !Object.keys(fieldErrors).length
+			? state.error
+			: null
+
 	return (
 		<form action={formAction} className="space-y-8">
-			{state && !state.success && (
+			{formError && (
 				<div
 					role="alert"
 					className="rounded-lg bg-destructive/10 px-4 py-3 font-sans text-sm text-destructive"
 				>
-					{tErrors(state.error.replace('errors.', '') as 'generic')}
+					{translateError(formError)}
 				</div>
 			)}
 
@@ -78,7 +85,20 @@ export function FormatForm({ format }: FormatFormProps) {
 						required
 						maxLength={100}
 						defaultValue={format?.name ?? ''}
+						aria-invalid={fieldErrors.name ? true : undefined}
+						aria-describedby={
+							fieldErrors.name ? 'format-name-error' : undefined
+						}
 					/>
+					{fieldErrors.name && (
+						<p
+							id="format-name-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.name)}
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
@@ -90,7 +110,20 @@ export function FormatForm({ format }: FormatFormProps) {
 						maxLength={100}
 						pattern="[a-z0-9-]+"
 						defaultValue={format?.slug ?? ''}
+						aria-invalid={fieldErrors.slug ? true : undefined}
+						aria-describedby={
+							fieldErrors.slug ? 'format-slug-error' : undefined
+						}
 					/>
+					{fieldErrors.slug && (
+						<p
+							id="format-slug-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.slug)}
+						</p>
+					)}
 				</div>
 			</div>
 
@@ -102,7 +135,20 @@ export function FormatForm({ format }: FormatFormProps) {
 					maxLength={500}
 					rows={2}
 					defaultValue={format?.description ?? ''}
+					aria-invalid={fieldErrors.description ? true : undefined}
+					aria-describedby={
+						fieldErrors.description ? 'format-description-error' : undefined
+					}
 				/>
+				{fieldErrors.description && (
+					<p
+						id="format-description-error"
+						role="alert"
+						className="text-sm text-destructive"
+					>
+						{translateError(fieldErrors.description)}
+					</p>
+				)}
 			</div>
 
 			<div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -113,7 +159,20 @@ export function FormatForm({ format }: FormatFormProps) {
 						name="formatType"
 						required
 						defaultValue={format?.format_type ?? 'canvas'}
+						aria-invalid={fieldErrors.formatType ? true : undefined}
+						aria-describedby={
+							fieldErrors.formatType ? 'format-type-error' : undefined
+						}
 					/>
+					{fieldErrors.formatType && (
+						<p
+							id="format-type-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.formatType)}
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
@@ -125,7 +184,20 @@ export function FormatForm({ format }: FormatFormProps) {
 						min={1}
 						required
 						defaultValue={format?.width_cm ?? ''}
+						aria-invalid={fieldErrors.widthCm ? true : undefined}
+						aria-describedby={
+							fieldErrors.widthCm ? 'format-width-error' : undefined
+						}
 					/>
+					{fieldErrors.widthCm && (
+						<p
+							id="format-width-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.widthCm)}
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
@@ -137,7 +209,20 @@ export function FormatForm({ format }: FormatFormProps) {
 						min={1}
 						required
 						defaultValue={format?.height_cm ?? ''}
+						aria-invalid={fieldErrors.heightCm ? true : undefined}
+						aria-describedby={
+							fieldErrors.heightCm ? 'format-height-error' : undefined
+						}
 					/>
+					{fieldErrors.heightCm && (
+						<p
+							id="format-height-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.heightCm)}
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
@@ -149,7 +234,20 @@ export function FormatForm({ format }: FormatFormProps) {
 						min={0}
 						required
 						defaultValue={format ? (format.price_cents / 100).toFixed(0) : ''}
+						aria-invalid={fieldErrors.priceCents ? true : undefined}
+						aria-describedby={
+							fieldErrors.priceCents ? 'format-price-error' : undefined
+						}
 					/>
+					{fieldErrors.priceCents && (
+						<p
+							id="format-price-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.priceCents)}
+						</p>
+					)}
 				</div>
 			</div>
 

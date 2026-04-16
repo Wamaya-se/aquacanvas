@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { ImageUploadField } from '@/components/admin/image-upload-field'
 import { createScene, updateScene, deleteScene } from '@/lib/actions/admin-scenes'
 import type { ActionResult } from '@/types/actions'
+import { useActionError } from '@/hooks/use-action-error'
 
 interface SceneData {
 	id: string
@@ -28,7 +29,7 @@ interface SceneFormProps {
 export function SceneForm({ scene }: SceneFormProps) {
 	const t = useTranslations('admin')
 	const tCommon = useTranslations('common')
-	const tErrors = useTranslations('errors')
+	const translateError = useActionError()
 	const router = useRouter()
 	const isEditing = !!scene
 
@@ -60,14 +61,20 @@ export function SceneForm({ scene }: SceneFormProps) {
 		}
 	}
 
+	const fieldErrors = state && !state.success ? state.fieldErrors ?? {} : {}
+	const formError =
+		state && !state.success && !Object.keys(fieldErrors).length
+			? state.error
+			: null
+
 	return (
 		<form action={formAction} className="space-y-8">
-			{state && !state.success && (
+			{formError && (
 				<div
 					role="alert"
 					className="rounded-lg bg-destructive/10 px-4 py-3 font-sans text-sm text-destructive"
 				>
-					{tErrors(state.error.replace('errors.', '') as 'generic')}
+					{translateError(formError)}
 				</div>
 			)}
 
@@ -80,7 +87,20 @@ export function SceneForm({ scene }: SceneFormProps) {
 						required
 						maxLength={100}
 						defaultValue={scene?.name ?? ''}
+						aria-invalid={fieldErrors.name ? true : undefined}
+						aria-describedby={
+							fieldErrors.name ? 'scene-name-error' : undefined
+						}
 					/>
+					{fieldErrors.name && (
+						<p
+							id="scene-name-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.name)}
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
@@ -91,7 +111,20 @@ export function SceneForm({ scene }: SceneFormProps) {
 						type="number"
 						min={0}
 						defaultValue={scene?.sort_order ?? 0}
+						aria-invalid={fieldErrors.sortOrder ? true : undefined}
+						aria-describedby={
+							fieldErrors.sortOrder ? 'scene-sort-error' : undefined
+						}
 					/>
+					{fieldErrors.sortOrder && (
+						<p
+							id="scene-sort-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.sortOrder)}
+						</p>
+					)}
 				</div>
 			</div>
 
@@ -103,13 +136,27 @@ export function SceneForm({ scene }: SceneFormProps) {
 					maxLength={500}
 					rows={2}
 					defaultValue={scene?.description ?? ''}
+					aria-invalid={fieldErrors.description ? true : undefined}
+					aria-describedby={
+						fieldErrors.description ? 'scene-description-error' : undefined
+					}
 				/>
+				{fieldErrors.description && (
+					<p
+						id="scene-description-error"
+						role="alert"
+						className="text-sm text-destructive"
+					>
+						{translateError(fieldErrors.description)}
+					</p>
+				)}
 			</div>
 
 			<ImageUploadField
 				name="image"
 				label={t('sceneImage')}
 				existingUrl={scene?.image_url}
+				error={fieldErrors.image ? translateError(fieldErrors.image) : undefined}
 			/>
 
 			<div className="flex items-center gap-3">

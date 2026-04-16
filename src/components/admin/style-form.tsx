@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { updateStyle } from '@/lib/actions/admin-styles'
 import type { ActionResult } from '@/types/actions'
+import { useActionError } from '@/hooks/use-action-error'
 
 interface StyleData {
 	id: string
@@ -30,7 +31,7 @@ interface StyleFormProps {
 export function StyleForm({ style }: StyleFormProps) {
 	const t = useTranslations('admin')
 	const tCommon = useTranslations('common')
-	const tErrors = useTranslations('errors')
+	const translateError = useActionError()
 	const router = useRouter()
 
 	async function handleAction(
@@ -48,14 +49,20 @@ export function StyleForm({ style }: StyleFormProps) {
 		}
 	}, [state, router])
 
+	const fieldErrors = state && !state.success ? state.fieldErrors ?? {} : {}
+	const formError =
+		state && !state.success && !Object.keys(fieldErrors).length
+			? state.error
+			: null
+
 	return (
 		<form action={formAction} className="space-y-8">
-			{state && !state.success && (
+			{formError && (
 				<div
 					role="alert"
 					className="rounded-lg bg-destructive/10 px-4 py-3 font-sans text-sm text-destructive"
 				>
-					{tErrors(state.error.replace('errors.', '') as 'generic')}
+					{translateError(formError)}
 				</div>
 			)}
 
@@ -68,7 +75,20 @@ export function StyleForm({ style }: StyleFormProps) {
 						required
 						maxLength={100}
 						defaultValue={style.name}
+						aria-invalid={fieldErrors.name ? true : undefined}
+						aria-describedby={
+							fieldErrors.name ? 'style-name-error' : undefined
+						}
 					/>
+					{fieldErrors.name && (
+						<p
+							id="style-name-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.name)}
+						</p>
+					)}
 				</div>
 
 				<div className="space-y-2">
@@ -80,7 +100,20 @@ export function StyleForm({ style }: StyleFormProps) {
 						maxLength={100}
 						pattern="[a-z0-9-]+"
 						defaultValue={style.slug}
+						aria-invalid={fieldErrors.slug ? true : undefined}
+						aria-describedby={
+							fieldErrors.slug ? 'style-slug-error' : undefined
+						}
 					/>
+					{fieldErrors.slug && (
+						<p
+							id="style-slug-error"
+							role="alert"
+							className="text-sm text-destructive"
+						>
+							{translateError(fieldErrors.slug)}
+						</p>
+					)}
 				</div>
 			</div>
 

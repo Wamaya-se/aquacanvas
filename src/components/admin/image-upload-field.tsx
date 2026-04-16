@@ -14,26 +14,29 @@ interface ImageUploadFieldProps {
 	name: string
 	label: string
 	existingUrl?: string | null
+	error?: string
 }
 
-export function ImageUploadField({ name, label, existingUrl }: ImageUploadFieldProps) {
+export function ImageUploadField({ name, label, existingUrl, error: externalError }: ImageUploadFieldProps) {
 	const t = useTranslations('admin')
 	const tErrors = useTranslations('errors')
 	const [previewUrl, setPreviewUrl] = useState<string | null>(existingUrl ?? null)
 	const [fileName, setFileName] = useState<string | null>(null)
-	const [error, setError] = useState<string | null>(null)
+	const [clientError, setClientError] = useState<string | null>(null)
 	const [isRemoved, setIsRemoved] = useState(false)
+	const error = clientError ?? externalError ?? null
+	const errorId = error ? `${name}-error` : undefined
 	const inputRef = useRef<HTMLInputElement>(null)
 
 	const handleFile = useCallback((file: File) => {
-		setError(null)
+		setClientError(null)
 
 		if (!ALLOWED_TYPES.includes(file.type)) {
-			setError(tErrors('invalidFileType'))
+			setClientError(tErrors('invalidFileType'))
 			return
 		}
 		if (file.size > MAX_FILE_SIZE) {
-			setError(tErrors('fileTooLarge', { maxSize: '5' }))
+			setClientError(tErrors('fileTooLarge', { maxSize: '5' }))
 			return
 		}
 
@@ -65,7 +68,7 @@ export function ImageUploadField({ name, label, existingUrl }: ImageUploadFieldP
 		setPreviewUrl(null)
 		setFileName(null)
 		setIsRemoved(true)
-		setError(null)
+		setClientError(null)
 		if (inputRef.current) inputRef.current.value = ''
 	}
 
@@ -132,7 +135,13 @@ export function ImageUploadField({ name, label, existingUrl }: ImageUploadFieldP
 			)}
 
 			{error && (
-				<p role="alert" className="font-sans text-xs text-destructive">{error}</p>
+				<p
+					id={errorId}
+					role="alert"
+					className="font-sans text-xs text-destructive"
+				>
+					{error}
+				</p>
 			)}
 
 			<input
@@ -143,6 +152,8 @@ export function ImageUploadField({ name, label, existingUrl }: ImageUploadFieldP
 				onChange={handleChange}
 				className="sr-only"
 				aria-label={label}
+				aria-invalid={error ? true : undefined}
+				aria-describedby={errorId}
 			/>
 			{isRemoved && <input type="hidden" name={`${name}__removed`} value="true" />}
 		</div>

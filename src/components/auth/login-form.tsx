@@ -24,6 +24,7 @@ const initialState: ActionResult = { success: true, data: undefined }
 
 export function LoginForm() {
 	const t = useTranslations('auth')
+	const tCommon = useTranslations('common')
 	const translateError = useActionError()
 	const searchParams = useSearchParams()
 	const redirect = searchParams.get('redirect') ?? ''
@@ -40,6 +41,10 @@ export function LoginForm() {
 		initialState,
 	)
 
+	const fieldErrors = !state.success ? state.fieldErrors ?? {} : {}
+	const formError =
+		!state.success && !Object.keys(fieldErrors).length ? state.error : null
+
 	return (
 		<Card>
 			<CardHeader>
@@ -50,9 +55,9 @@ export function LoginForm() {
 				<form action={formAction} className="flex flex-col gap-4">
 					<input type="hidden" name="redirect" value={redirect} />
 
-					{!state.success && state.error && (
+					{formError && (
 						<p role="alert" className="text-sm text-destructive">
-							{translateError(state.error)}
+							{translateError(formError)}
 						</p>
 					)}
 
@@ -64,12 +69,20 @@ export function LoginForm() {
 							type="email"
 							autoComplete="email"
 							required
-							aria-invalid={
-								!state.success && state.error?.includes('email')
-									? true
-									: undefined
+							aria-invalid={fieldErrors.email ? true : undefined}
+							aria-describedby={
+								fieldErrors.email ? 'login-email-error' : undefined
 							}
 						/>
+						{fieldErrors.email && (
+							<p
+								id="login-email-error"
+								role="alert"
+								className="text-sm text-destructive"
+							>
+								{translateError(fieldErrors.email)}
+							</p>
+						)}
 					</div>
 
 					<div className="flex flex-col gap-2">
@@ -81,11 +94,24 @@ export function LoginForm() {
 							autoComplete="current-password"
 							required
 							minLength={8}
+							aria-invalid={fieldErrors.password ? true : undefined}
+							aria-describedby={
+								fieldErrors.password ? 'login-password-error' : undefined
+							}
 						/>
+						{fieldErrors.password && (
+							<p
+								id="login-password-error"
+								role="alert"
+								className="text-sm text-destructive"
+							>
+								{translateError(fieldErrors.password)}
+							</p>
+						)}
 					</div>
 
 					<Button type="submit" className="mt-2 w-full" disabled={isPending}>
-						{isPending ? '...' : t('loginButton')}
+						{isPending ? tCommon('loading') : t('loginButton')}
 					</Button>
 				</form>
 			</CardContent>

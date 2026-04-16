@@ -3,12 +3,14 @@
 import { useTheme } from '@wrksz/themes/client'
 import { useEffect, useState } from 'react'
 import { Moon, Sun, Monitor } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 
 const themes = ['light', 'dark', 'system'] as const
 
 export function ThemeToggle() {
 	const { theme, setTheme } = useTheme()
+	const t = useTranslations('common')
 	const [mounted, setMounted] = useState(false)
 
 	useEffect(() => {
@@ -41,7 +43,7 @@ export function ThemeToggle() {
 			variant="ghost"
 			size="icon"
 			onClick={handleCycle}
-			aria-label={`Current theme: ${theme}. Click to switch.`}
+			aria-label={t('themeToggle', { theme: theme ?? 'system' })}
 		>
 			{icon}
 		</Button>
