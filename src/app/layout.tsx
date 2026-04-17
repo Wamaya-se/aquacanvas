@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import { EB_Garamond, Figtree } from 'next/font/google'
-import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { getSiteUrl } from '@/lib/env'
@@ -48,7 +47,6 @@ export default async function RootLayout({
 	children: React.ReactNode
 }>) {
 	const locale = await getLocale()
-	const t = await getTranslations('common')
 
 	return (
 		<html
@@ -57,14 +55,7 @@ export default async function RootLayout({
 			suppressHydrationWarning
 		>
 			<body className="min-h-dvh bg-surface text-foreground font-sans antialiased">
-				<ThemeProvider>
-					<NextIntlClientProvider>
-						<a href="#main-content" className="skip-to-content">
-							{t('skipToContent')}
-						</a>
-						{children}
-					</NextIntlClientProvider>
-				</ThemeProvider>
+				<ThemeProvider>{children}</ThemeProvider>
 			</body>
 		</html>
 	)
