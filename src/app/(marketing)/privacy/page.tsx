@@ -1,20 +1,15 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { getSiteUrl } from '@/lib/env'
+import { buildMetadata } from '@/lib/metadata'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('privacy')
-
-	return {
+	return buildMetadata({
 		title: t('meta.title'),
 		description: t('meta.description'),
-		openGraph: {
-			title: t('meta.title'),
-			description: t('meta.description'),
-			type: 'website',
-			siteName: 'Aquacanvas',
-		},
-	}
+		path: '/privacy',
+	})
 }
 
 interface Section {

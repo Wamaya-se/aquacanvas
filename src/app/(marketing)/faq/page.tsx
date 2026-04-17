@@ -3,20 +3,15 @@ import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '@/components/ui/button'
 import { getSiteUrl } from '@/lib/env'
+import { buildMetadata } from '@/lib/metadata'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('faq')
-
-	return {
+	return buildMetadata({
 		title: t('meta.title'),
 		description: t('meta.description'),
-		openGraph: {
-			title: t('meta.title'),
-			description: t('meta.description'),
-			type: 'website',
-			siteName: 'Aquacanvas',
-		},
-	}
+		path: '/faq',
+	})
 }
 
 interface FaqItem {

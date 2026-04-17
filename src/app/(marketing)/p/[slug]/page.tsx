@@ -8,6 +8,8 @@ import { CreateFlow } from '@/components/shop/create-flow'
 import type { StyleOption } from '@/components/shop/style-picker'
 import type { FormatOption } from '@/components/shop/format-picker'
 import { getSiteUrl } from '@/lib/env'
+import { buildMetadata } from '@/lib/metadata'
+import { parseOrientation, parseFaq } from '@/lib/db-helpers'
 
 interface ProductPageProps {
 	params: Promise<{ slug: string }>
@@ -39,15 +41,12 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 	const title = product.seo_title || t('defaultMetaTitle', { name: product.name })
 	const description = product.seo_description || t('defaultMetaDescription', { name: product.name.toLowerCase() })
 
-	return {
+	return buildMetadata({
 		title,
 		description,
-		openGraph: {
-			title,
-			description,
-			...(product.hero_image_url ? { images: [{ url: product.hero_image_url }] } : {}),
-		},
-	}
+		path: `/p/${slug}`,
+		images: product.hero_image_url ? [product.hero_image_url] : undefined,
+	})
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
@@ -98,10 +97,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
 		widthCm: f.width_cm,
 		heightCm: f.height_cm,
 		priceCents: f.price_cents,
-		orientation: f.orientation as 'portrait' | 'landscape' | 'square',
+		orientation: parseOrientation(f.orientation),
 	}))
 
-	const faq = (product.faq ?? []) as { question: string; answer: string }[]
+	const faq = parseFaq(product.faq)
 
 	const siteUrl = getSiteUrl()
 	const breadcrumbJsonLd = {

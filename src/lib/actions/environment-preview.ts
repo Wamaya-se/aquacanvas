@@ -14,6 +14,7 @@ import {
 } from '@/validators/order'
 import type { ActionResult } from '@/types/actions'
 import type { PreviewStatus } from '@/types/supabase'
+import { getSceneName } from '@/lib/db-helpers'
 
 export interface EnvironmentPreviewItem {
 	id: string
@@ -237,7 +238,7 @@ export async function checkEnvironmentPreviewsStatus(
 	const results: EnvironmentPreviewItem[] = []
 
 	for (const preview of previews) {
-		const sceneName = (preview.environment_scenes as unknown as { name: string })?.name ?? 'Room'
+		const sceneName = getSceneName(preview.environment_scenes)
 
 		if (preview.status === 'success' && preview.image_path) {
 			const { data: { publicUrl } } = adminDb.storage

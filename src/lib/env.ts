@@ -46,6 +46,18 @@ export function getContactEmail(): string {
 	return process.env.CONTACT_EMAIL ?? 'support@aquacanvas.com'
 }
 
+export function getSentryDsn(): string | null {
+	return process.env.NEXT_PUBLIC_SENTRY_DSN ?? null
+}
+
+export function getUpstashRedisUrl(): string | null {
+	return process.env.UPSTASH_REDIS_REST_URL ?? null
+}
+
+export function getUpstashRedisToken(): string | null {
+	return process.env.UPSTASH_REDIS_REST_TOKEN ?? null
+}
+
 export const env = {
 	get siteUrl() {
 		return getSiteUrl()

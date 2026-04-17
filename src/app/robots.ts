@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next'
+import { getSiteUrl } from '@/lib/env'
 
 export default function robots(): MetadataRoute.Robots {
 	return {
@@ -7,6 +8,6 @@ export default function robots(): MetadataRoute.Robots {
 			allow: '/',
 			disallow: ['/api/', '/admin/'],
 		},
-		sitemap: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aquacanvas.com'}/sitemap.xml`,
+		sitemap: `${getSiteUrl()}/sitemap.xml`,
 	}
 }

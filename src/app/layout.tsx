@@ -3,6 +3,7 @@ import { EB_Garamond, Figtree } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages, getTranslations } from 'next-intl/server'
 import { ThemeProvider } from '@/components/providers/theme-provider'
+import { getSiteUrl } from '@/lib/env'
 import './globals.css'
 
 const ebGaramond = EB_Garamond({
@@ -21,6 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('metadata')
 
 	return {
+		metadataBase: new URL(getSiteUrl()),
 		title: {
 			default: t('homeTitle'),
 			template: '%s — Aquacanvas',
@@ -31,6 +33,11 @@ export async function generateMetadata(): Promise<Metadata> {
 			description: t('homeDescription'),
 			type: 'website',
 			siteName: 'Aquacanvas',
+		},
+		twitter: {
+			card: 'summary_large_image',
+			title: t('homeTitle'),
+			description: t('homeDescription'),
 		},
 	}
 }

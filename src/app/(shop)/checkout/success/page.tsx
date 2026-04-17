@@ -8,14 +8,16 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripe } from '@/lib/stripe'
+import { buildMetadata } from '@/lib/metadata'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('checkout.meta')
-
-	return {
+	return buildMetadata({
 		title: t('successTitle'),
 		description: t('successDescription'),
-	}
+		path: '/checkout/success',
+		noIndex: true,
+	})
 }
 
 interface SuccessPageProps {

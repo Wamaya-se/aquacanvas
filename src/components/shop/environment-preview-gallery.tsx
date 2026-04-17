@@ -12,10 +12,7 @@ import {
 	type EnvironmentPreviewItem,
 } from '@/lib/actions/environment-preview'
 import { useActionError } from '@/hooks/use-action-error'
-
-const MAX_POLL_ATTEMPTS = 40
-const INITIAL_POLL_INTERVAL = 4000
-const MAX_POLL_INTERVAL = 15000
+import { usePollingTask } from '@/hooks/use-polling-task'
 
 const TEST_ENVIRONMENT_PREVIEWS: EnvironmentPreviewItem[] = [
 	{
@@ -67,16 +64,8 @@ export function EnvironmentPreviewGallery({
 	)
 	const [error, setError] = useState<string | null>(null)
 
-	const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-	const attemptRef = useRef(0)
 	const prevLoadedRef = useRef<string>('')
 	const hasStartedRef = useRef(false)
-
-	useEffect(() => {
-		return () => {
-			if (pollRef.current) clearTimeout(pollRef.current)
-		}
-	}, [])
 
 	useEffect(() => {
 		if (!onPreviewsLoaded) return
@@ -92,41 +81,24 @@ export function EnvironmentPreviewGallery({
 		}
 	}, [previews, onPreviewsLoaded])
 
-	const startPolling = useCallback(() => {
-		attemptRef.current = 0
-
-		function poll() {
-			attemptRef.current += 1
-
-			if (attemptRef.current > MAX_POLL_ATTEMPTS) {
-				setState('done')
-				return
+	const { start: startPolling } = usePollingTask(
+		() => checkEnvironmentPreviewsStatus(orderId, guestSessionId),
+		(result) => {
+			if (!result.success) {
+				setState('error')
+				setError(result.error)
+				return 'done'
 			}
-
-			checkEnvironmentPreviewsStatus(orderId, guestSessionId).then((result) => {
-				if (!result.success) {
-					setState('error')
-					setError(result.error)
-					return
-				}
-
-				setPreviews(result.data.previews)
-
-				if (result.data.allDone) {
-					setState('done')
-					return
-				}
-
-				const delay = Math.min(
-					INITIAL_POLL_INTERVAL * Math.pow(1.3, attemptRef.current - 1),
-					MAX_POLL_INTERVAL,
-				)
-				pollRef.current = setTimeout(poll, delay)
-			})
-		}
-
-		pollRef.current = setTimeout(poll, INITIAL_POLL_INTERVAL)
-	}, [orderId, guestSessionId])
+			setPreviews(result.data.previews)
+			if (result.data.allDone) {
+				setState('done')
+				return 'done'
+			}
+			return 'continue'
+		},
+		() => setState('done'),
+		{ maxAttempts: 40, initialDelay: 4000, maxDelay: 15000, backoff: 1.3 },
+	)
 
 	const handleGenerate = useCallback(async () => {
 		setState('generating')

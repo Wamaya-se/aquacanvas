@@ -1,7 +1,18 @@
 'use server'
 
+import { headers } from 'next/headers'
 import type { ActionResult } from '@/types/actions'
 import { contactSchema } from '@/validators/contact'
+import { checkRateLimit } from '@/lib/rate-limit'
+
+async function getClientIp(): Promise<string> {
+	const hdrs = await headers()
+	return (
+		hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+		hdrs.get('x-real-ip') ??
+		'unknown'
+	)
+}
 
 export async function sendContactMessage(
 	formData: FormData
@@ -16,6 +27,16 @@ export async function sendContactMessage(
 	const parsed = contactSchema.safeParse(raw)
 	if (!parsed.success) {
 		return { success: false, error: 'errors.invalidInput' }
+	}
+
+	const rl = await checkRateLimit('contact', await getClientIp())
+	if (!rl.allowed) {
+		const minutes = Math.max(1, Math.ceil((rl.retryAfterSeconds ?? 0) / 60))
+		return {
+			success: false,
+			error: 'errors.rateLimitedRequests',
+			meta: { minutes, maxRequests: rl.maxRequests },
+		}
 	}
 
 	try {

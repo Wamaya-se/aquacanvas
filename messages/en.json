@@ -175,6 +175,7 @@
 		"paymentFailed": "Payment failed. Please try again.",
 		"rateLimited": "You've reached the limit of {maxRequests} generations per hour. Please try again in {minutes} min.",
 		"rateLimitedGeneric": "Too many requests. Please try again in a few minutes.",
+		"rateLimitedRequests": "Too many requests. Please try again in {minutes} min.",
 		"generationFailed": "Image generation failed. Please try again.",
 		"generationTimeout": "Generation timed out. Please try again.",
 		"styleNotFound": "Selected style is not available.",

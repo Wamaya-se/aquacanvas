@@ -2,13 +2,17 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { getTranslations } from 'next-intl/server'
 import { LoginForm } from '@/components/auth/login-form'
+import { buildMetadata } from '@/lib/metadata'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('metadata')
-
-	return {
+	return buildMetadata({
 		title: t('loginTitle'),
-	}
+		description: t('homeDescription'),
+		path: '/login',
+		absoluteTitle: true,
+		noIndex: true,
+	})
 }
 
 export default async function LoginPage() {

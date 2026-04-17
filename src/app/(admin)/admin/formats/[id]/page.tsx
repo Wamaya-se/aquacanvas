@@ -6,7 +6,8 @@ import { ArrowLeft } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
-import { FormatForm, type FormatData } from '@/components/admin/format-form'
+import { FormatForm } from '@/components/admin/format-form'
+import { parseFormatRow } from '@/lib/db-helpers'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('admin.meta')
@@ -47,7 +48,7 @@ export default async function EditFormatPage({ params }: EditFormatPageProps) {
 					{t('editFormat')}
 				</h1>
 			</div>
-			<FormatForm format={format as FormatData} />
+			<FormatForm format={parseFormatRow(format)} />
 		</div>
 	)
 }

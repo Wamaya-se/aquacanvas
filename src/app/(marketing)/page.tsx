@@ -8,22 +8,16 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { BeforeAfterSlider } from '@/components/shared/before-after-slider'
 import { getSiteUrl, getContactEmail } from '@/lib/env'
+import { buildMetadata } from '@/lib/metadata'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('metadata')
-
-	return {
-		title: {
-			absolute: t('homeTitle'),
-		},
+	return buildMetadata({
+		title: t('homeTitle'),
 		description: t('homeDescription'),
-		openGraph: {
-			title: t('homeTitle'),
-			description: t('homeDescription'),
-			type: 'website',
-			siteName: 'Aquacanvas',
-		},
-	}
+		path: '/',
+		absoluteTitle: true,
+	})
 }
 
 export default async function HomePage() {

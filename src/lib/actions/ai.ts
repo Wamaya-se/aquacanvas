@@ -8,6 +8,7 @@ import { generateArtworkSchema, checkStatusSchema, guestSessionIdSchema, validat
 import type { OrientationValue } from '@/validators/order'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { getRateLimitBypassEnabled } from '@/lib/actions/admin-settings'
+import { captureServerError } from '@/lib/observability'
 import type { ActionResult } from '@/types/actions'
 import type { KieTaskState, AspectRatio } from '@/lib/ai'
 
@@ -57,7 +58,11 @@ export async function generateArtwork(
 
 	const rateLimitId = user?.id ?? (await getClientIp())
 	const rateLimitBypassed = await getRateLimitBypassEnabled()
-	const rateLimit = checkRateLimit(rateLimitId, isGuest, { disabled: rateLimitBypassed })
+	const rateLimit = await checkRateLimit(
+		isGuest ? 'aiGuest' : 'aiAuth',
+		rateLimitId,
+		{ disabled: rateLimitBypassed },
+	)
 	if (!rateLimit.allowed) {
 		const minutes = Math.ceil((rateLimit.retryAfterSeconds ?? 0) / 60)
 		return {
@@ -148,6 +153,11 @@ export async function generateArtwork(
 		taskId = result.taskId
 	} catch (err) {
 		console.error('[generateArtwork] Kie.ai upload/createTask', err)
+		await captureServerError(err, {
+			action: 'generateArtwork',
+			stage: 'kie_upload_create_task',
+			orderId: order.id,
+		})
 		await adminDb
 			.from('orders')
 			.update({ status: 'created' })
@@ -297,6 +307,12 @@ export async function checkGenerationStatus(
 			}
 		} catch (err) {
 			console.error('[checkGenerationStatus] download+upload', err)
+			await captureServerError(err, {
+				action: 'checkGenerationStatus',
+				stage: 'download_and_upload',
+				orderId: order.id,
+				taskId: parsed.data.taskId,
+			})
 			return { success: false, error: 'errors.generationFailed' }
 		}
 	}

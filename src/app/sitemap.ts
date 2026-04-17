@@ -1,9 +1,9 @@
 import type { MetadataRoute } from 'next'
 import { createAdminClient } from '@/lib/supabase/admin'
+import { getSiteUrl } from '@/lib/env'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-	const baseUrl =
-		process.env.NEXT_PUBLIC_SITE_URL ?? 'https://aquacanvas.com'
+	const baseUrl = getSiteUrl()
 
 	const adminDb = createAdminClient()
 	const { data: products } = await adminDb

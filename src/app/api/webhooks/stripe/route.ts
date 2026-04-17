@@ -4,6 +4,7 @@ import { getStripe } from '@/lib/stripe'
 import { getStripeWebhookSecret } from '@/lib/env'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendOrderConfirmation, sendAdminOrderNotification } from '@/lib/email/send'
+import { captureServerError } from '@/lib/observability'
 
 export async function POST(request: Request) {
 	const body = await request.text()
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
 		)
 	} catch (err) {
 		console.error('[stripe-webhook] Signature verification failed', err)
+		await captureServerError(err, { stage: 'stripe_webhook_signature' })
 		return NextResponse.json(
 			{ error: 'Webhook signature verification failed' },
 			{ status: 400 },
@@ -89,6 +91,10 @@ export async function POST(request: Request) {
 
 		if (updateError) {
 			console.error('[stripe-webhook] Order update failed', updateError)
+			await captureServerError(updateError, {
+				stage: 'stripe_webhook_order_update',
+				orderId,
+			})
 			return NextResponse.json(
 				{ error: 'Failed to update order' },
 				{ status: 500 },

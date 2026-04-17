@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-16 (Batch 3 — i18n & a11y-städning klar) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-16 (Batch 4 — SEO + observability klar) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** Fas 12 · Batch 4 — SEO + observability (se nedan).
+**Nästa upp:** Fas 12 slutförd — välj nästa område (Fas 13: Strategiska produktidéer eller ny audit).
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
 
@@ -287,21 +287,21 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 - [x] FAQ-fält: ersatt `as string`-cast med typsäker `formData.get` + Zod-parse
 - [x] Hårdkodad `text-white` → ny `--on-scrim`-token (`generation-result.tsx`, `environment-preview-gallery.tsx`)
 
-### Batch 4 — SEO + observability 🟡
+### Batch 4 — SEO + observability ✅
 
-> **Status:** ⏳ Ej startad · **Mål:** Sajten är produktionsmogen för trafik & felövervakning.
+> **Status:** ✅ Klar · **Mål:** Sajten är produktionsmogen för trafik & felövervakning.
 
-- [ ] Sentry-integration (server + client) med `orderId`/`taskId`-tags
-- [ ] Distributed rate limiting (Upstash Redis eller Vercel KV) — ersätt `src/lib/rate-limit.ts`
-- [ ] Lägg på rate limiting på `login`, `register`, `sendContactMessage` Server Actions
-- [ ] `metadataBase` i root layout
-- [ ] `alternates.canonical` på alla publika sidor
-- [ ] Twitter card metadata på alla publika sidor
-- [ ] OG-image för auth/checkout-sidor
-- [ ] `loading.tsx` per route group (marketing, shop, admin, dashboard)
-- [ ] Bryt ut `usePollingTask`-hook (DRY mellan `create-flow.tsx` och `environment-preview-gallery.tsx`)
-- [ ] `getSiteUrl()` i `sitemap.ts` + `robots.ts` (ersätt `process.env.NEXT_PUBLIC_SITE_URL`-fallback)
-- [ ] Type-safe Supabase-relationer — antingen DB-enum för `orientation`, Zod-parse vid query, eller `db-helpers.ts` med typed parsers (ersätter både pre-existerande `as unknown as`-cast och de 4 cast som tillkom i Batch 1)
+- [x] Sentry-integration (server + client + edge) — villkorlig via `SENTRY_DSN`, `instrumentation.ts` + `onRequestError`, `captureServerError`-helper, integrerad i Stripe-webhook, AI-actions och root `error.tsx` med `orderId`/`taskId`-tags
+- [x] Distributed rate limiting — Upstash Redis via `@upstash/ratelimit` med in-memory-fallback, `RATE_LIMITS`-buckets (`aiAuth`, `aiGuest`, `login`, `register`, `contact`)
+- [x] Rate limiting på `login` (email+IP), `register` (IP) och `sendContactMessage` (IP) + `errors.rateLimitedRequests`-nyckel
+- [x] `metadataBase` i root layout (via `getSiteUrl()`)
+- [x] `buildMetadata`-helper + `alternates.canonical` på alla publika sidor (marketing + auth + checkout + product + create)
+- [x] Twitter `summary_large_image`-card på alla publika sidor (via `buildMetadata`)
+- [x] OG-image för auth, checkout och root (`opengraph-image.tsx` via `next/og` per route group)
+- [x] `loading.tsx` per route group (marketing, shop, admin, dashboard) med Skeleton
+- [x] `usePollingTask`-hook utbruten — DRY mellan `create-flow.tsx` och `environment-preview-gallery.tsx`, inkl. `useLatest`-pattern
+- [x] `getSiteUrl()` i `sitemap.ts` + `robots.ts`
+- [x] Type-safe Supabase-relationer via `db-helpers.ts` (`parseOrientation`, `parseFaq`, `parseFormatRow`, `parseProductRow`, `getSceneName`, `unwrapSingleRelation`) — ersätter samtliga `as unknown as`-cast
 
 ---
 

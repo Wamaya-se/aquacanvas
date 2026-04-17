@@ -2,12 +2,23 @@
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { loginSchema, registerSchema } from '@/validators/auth'
 import type { ActionResult } from '@/types/actions'
 import { getSiteUrl } from '@/lib/env'
 import { isSafePath } from '@/lib/safe-redirect'
 import { zodIssuesToFieldErrors } from '@/lib/form-errors'
+import { checkRateLimit } from '@/lib/rate-limit'
+
+async function getClientIp(): Promise<string> {
+	const hdrs = await headers()
+	return (
+		hdrs.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+		hdrs.get('x-real-ip') ??
+		'unknown'
+	)
+}
 
 export async function login(
 	formData: FormData,
@@ -19,6 +30,17 @@ export async function login(
 		const fieldErrors = zodIssuesToFieldErrors(parsed.error)
 		const firstKey = Object.values(fieldErrors)[0] ?? 'errors.invalidInput'
 		return { success: false, error: firstKey, fieldErrors }
+	}
+
+	const identifier = `${parsed.data.email}:${await getClientIp()}`
+	const rl = await checkRateLimit('login', identifier)
+	if (!rl.allowed) {
+		const minutes = Math.max(1, Math.ceil((rl.retryAfterSeconds ?? 0) / 60))
+		return {
+			success: false,
+			error: 'errors.rateLimitedRequests',
+			meta: { minutes, maxRequests: rl.maxRequests },
+		}
 	}
 
 	const supabase = await createClient()
@@ -52,6 +74,16 @@ export async function register(
 		const fieldErrors = zodIssuesToFieldErrors(parsed.error)
 		const firstKey = Object.values(fieldErrors)[0] ?? 'errors.invalidInput'
 		return { success: false, error: firstKey, fieldErrors }
+	}
+
+	const rl = await checkRateLimit('register', await getClientIp())
+	if (!rl.allowed) {
+		const minutes = Math.max(1, Math.ceil((rl.retryAfterSeconds ?? 0) / 60))
+		return {
+			success: false,
+			error: 'errors.rateLimitedRequests',
+			meta: { minutes, maxRequests: rl.maxRequests },
+		}
 	}
 
 	const supabase = await createClient()

@@ -5,20 +5,15 @@ import { getTranslations } from 'next-intl/server'
 import { Button } from '@/components/ui/button'
 import { BeforeAfterSlider } from '@/components/shared/before-after-slider'
 import { getSiteUrl } from '@/lib/env'
+import { buildMetadata } from '@/lib/metadata'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('gallery')
-
-	return {
+	return buildMetadata({
 		title: t('meta.title'),
 		description: t('meta.description'),
-		openGraph: {
-			title: t('meta.title'),
-			description: t('meta.description'),
-			type: 'website',
-			siteName: 'Aquacanvas',
-		},
-	}
+		path: '/gallery',
+	})
 }
 
 interface GalleryItem {

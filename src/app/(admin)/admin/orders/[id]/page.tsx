@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { OrderStatusChanger } from '@/components/admin/order-status-changer'
+import { getSceneName } from '@/lib/db-helpers'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('admin.meta')
@@ -65,7 +66,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 		.eq('order_id', order.id)
 
 	const environmentPreviews = (envPreviews ?? []).map((ep) => ({
-		name: (ep.environment_scenes as unknown as { name: string })?.name ?? 'Room',
+		name: getSceneName(ep.environment_scenes),
 		status: ep.status,
 		imageUrl: ep.image_path
 			? supabase.storage.from('images').getPublicUrl(ep.image_path).data.publicUrl

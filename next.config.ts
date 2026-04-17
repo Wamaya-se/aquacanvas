@@ -1,5 +1,6 @@
 import type { NextConfig } from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
+import { withSentryConfig } from '@sentry/nextjs'
 
 const nextConfig: NextConfig = {
 	images: {
@@ -38,4 +39,20 @@ const nextConfig: NextConfig = {
 
 const withNextIntl = createNextIntlPlugin()
 
-export default withNextIntl(nextConfig)
+const sentryEnabled = Boolean(
+	process.env.SENTRY_DSN ?? process.env.NEXT_PUBLIC_SENTRY_DSN,
+)
+
+const intlConfig = withNextIntl(nextConfig)
+
+export default sentryEnabled
+	? withSentryConfig(intlConfig, {
+			silent: true,
+			org: process.env.SENTRY_ORG,
+			project: process.env.SENTRY_PROJECT,
+			widenClientFileUpload: true,
+			disableLogger: true,
+			automaticVercelMonitors: true,
+			tunnelRoute: '/monitoring',
+		})
+	: intlConfig

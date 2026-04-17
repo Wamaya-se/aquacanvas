@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { ImageUpload } from '@/components/shop/image-upload'
 import { StylePicker, type StyleOption } from '@/components/shop/style-picker'
@@ -9,10 +9,8 @@ import { ArtPreview, type GenerationState } from '@/components/shop/art-preview'
 import { generateArtwork, checkGenerationStatus } from '@/lib/actions/ai'
 import type { FormatOption } from '@/components/shop/format-picker'
 import type { OrientationValue } from '@/validators/order'
+import { usePollingTask } from '@/hooks/use-polling-task'
 
-const MAX_POLL_ATTEMPTS = 60
-const INITIAL_POLL_INTERVAL = 3000
-const MAX_POLL_INTERVAL = 15000
 const GUEST_SESSION_KEY = 'aquacanvas_guest_session'
 
 function getOrCreateGuestSession(): string {
@@ -65,8 +63,7 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 		testMode ? TEST_IMAGES.orderId : null,
 	)
 
-	const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-	const attemptRef = useRef(0)
+	const activeTaskRef = useRef<{ taskId: string; orderId: string } | null>(null)
 
 	useEffect(() => {
 		if (testMode) {
@@ -101,58 +98,37 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 		setSelectedOrientation(null)
 	}, [file, testMode])
 
-	useEffect(() => {
-		return () => {
-			if (pollRef.current) clearTimeout(pollRef.current)
-		}
-	}, [])
-
-	const startPolling = useCallback(
-		(taskId: string, orderId: string) => {
-			attemptRef.current = 0
-
-			function poll() {
-				attemptRef.current += 1
-
-				if (attemptRef.current > MAX_POLL_ATTEMPTS) {
-					setGenerationState('error')
-					setErrorMessage('errors.generationTimeout')
-					return
-				}
-
-				checkGenerationStatus(taskId, orderId, guestSessionId).then((result) => {
-					if (!result.success) {
-						setGenerationState('error')
-						setErrorMessage(result.error)
-						return
-					}
-
-					const { state, generatedImageUrl: url } = result.data
-
-					if (state === 'success' && url) {
-						setGenerationState('success')
-						setGeneratedImageUrl(url)
-						return
-					}
-
-				if (state === 'fail') {
-					setGenerationState('error')
-					setErrorMessage('errors.generationFailed')
-					return
-				}
-
-					const delay = Math.min(
-						INITIAL_POLL_INTERVAL *
-							Math.pow(1.3, attemptRef.current - 1),
-						MAX_POLL_INTERVAL,
-					)
-					pollRef.current = setTimeout(poll, delay)
-				})
-			}
-
-			pollRef.current = setTimeout(poll, INITIAL_POLL_INTERVAL)
+	const { start: startPolling, stop: stopPolling } = usePollingTask(
+		async () => {
+			const task = activeTaskRef.current
+			if (!task) return null
+			return checkGenerationStatus(task.taskId, task.orderId, guestSessionId)
 		},
-		[guestSessionId],
+		(result) => {
+			if (!result) return 'done'
+			if (!result.success) {
+				setGenerationState('error')
+				setErrorMessage(result.error)
+				return 'done'
+			}
+			const { state, generatedImageUrl: url } = result.data
+			if (state === 'success' && url) {
+				setGenerationState('success')
+				setGeneratedImageUrl(url)
+				return 'done'
+			}
+			if (state === 'fail') {
+				setGenerationState('error')
+				setErrorMessage('errors.generationFailed')
+				return 'done'
+			}
+			return 'continue'
+		},
+		() => {
+			setGenerationState('error')
+			setErrorMessage('errors.generationTimeout')
+		},
+		{ maxAttempts: 60, initialDelay: 3000, maxDelay: 15000, backoff: 1.3 },
 	)
 
 	async function handleGenerate() {
@@ -181,11 +157,16 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 
 		setOrderId(result.data.orderId)
 		setGenerationState('processing')
-		startPolling(result.data.taskId, result.data.orderId)
+		activeTaskRef.current = {
+			taskId: result.data.taskId,
+			orderId: result.data.orderId,
+		}
+		startPolling()
 	}
 
 	function handleReset() {
-		if (pollRef.current) clearTimeout(pollRef.current)
+		stopPolling()
+		activeTaskRef.current = null
 		setGenerationState('idle')
 		setGeneratedImageUrl(null)
 		setErrorMessage(null)

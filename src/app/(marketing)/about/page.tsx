@@ -4,20 +4,15 @@ import { getTranslations } from 'next-intl/server'
 import { Gem, Heart, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { getSiteUrl } from '@/lib/env'
+import { buildMetadata } from '@/lib/metadata'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('about')
-
-	return {
+	return buildMetadata({
 		title: t('meta.title'),
 		description: t('meta.description'),
-		openGraph: {
-			title: t('meta.title'),
-			description: t('meta.description'),
-			type: 'website',
-			siteName: 'Aquacanvas',
-		},
-	}
+		path: '/about',
+	})
 }
 
 export default async function AboutPage() {

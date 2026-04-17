@@ -5,20 +5,16 @@ import { createClient } from '@/lib/supabase/server'
 import { CreateFlow } from '@/components/shop/create-flow'
 import type { StyleOption } from '@/components/shop/style-picker'
 import type { FormatOption } from '@/components/shop/format-picker'
+import { buildMetadata } from '@/lib/metadata'
+import { parseOrientation } from '@/lib/db-helpers'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('shop.meta')
-
-	return {
+	return buildMetadata({
 		title: t('title'),
 		description: t('description'),
-		openGraph: {
-			title: t('title'),
-			description: t('description'),
-			type: 'website',
-			siteName: 'Aquacanvas',
-		},
-	}
+		path: '/create',
+	})
 }
 
 export default async function CreatePage() {
@@ -58,7 +54,7 @@ export default async function CreatePage() {
 		widthCm: f.width_cm,
 		heightCm: f.height_cm,
 		priceCents: f.price_cents,
-		orientation: f.orientation as 'portrait' | 'landscape' | 'square',
+		orientation: parseOrientation(f.orientation),
 	}))
 
 	return (

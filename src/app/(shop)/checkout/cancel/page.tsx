@@ -3,14 +3,16 @@ import Link from 'next/link'
 import { XCircle } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import { Button } from '@/components/ui/button'
+import { buildMetadata } from '@/lib/metadata'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('checkout.meta')
-
-	return {
+	return buildMetadata({
 		title: t('cancelTitle'),
 		description: t('cancelDescription'),
-	}
+		path: '/checkout/cancel',
+		noIndex: true,
+	})
 }
 
 export default async function CheckoutCancelPage() {

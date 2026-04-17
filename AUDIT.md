@@ -309,7 +309,10 @@ Använd `useTranslations('common')` med `t('themeToggle', { theme })`.
 
 ---
 
-## Batch 4 — SEO + observability 🟡
+## Batch 4 — SEO + observability ✅
+
+> **Status:** Klar 2026-04-16. Se `ROADMAP.md` för sammanfattning av åtgärder. Referens nedan bevaras för historisk kontext.
+
 
 ### 4.1 Sentry-integration
 

@@ -3,8 +3,9 @@ import { notFound } from 'next/navigation'
 import { z } from 'zod'
 import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
-import { ProductForm, type ProductData } from '@/components/admin/product-form'
+import { ProductForm } from '@/components/admin/product-form'
 import { DeleteProductButton } from '@/components/admin/delete-product-button'
+import { parseProductRow } from '@/lib/db-helpers'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('admin.meta')
@@ -52,7 +53,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
 			</div>
 			<div className="rounded-xl bg-surface-container p-6 lg:p-8">
 				<ProductForm
-					product={productResult.data as ProductData}
+					product={parseProductRow(productResult.data)}
 					styles={stylesResult.data ?? []}
 				/>
 			</div>

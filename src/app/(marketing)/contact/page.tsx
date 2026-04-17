@@ -3,20 +3,15 @@ import { getTranslations } from 'next-intl/server'
 import { Mail, Clock } from 'lucide-react'
 import { ContactForm } from '@/components/shared/contact-form'
 import { getSiteUrl } from '@/lib/env'
+import { buildMetadata } from '@/lib/metadata'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('contact')
-
-	return {
+	return buildMetadata({
 		title: t('meta.title'),
 		description: t('meta.description'),
-		openGraph: {
-			title: t('meta.title'),
-			description: t('meta.description'),
-			type: 'website',
-			siteName: 'Aquacanvas',
-		},
-	}
+		path: '/contact',
+	})
 }
 
 export default async function ContactPage() {

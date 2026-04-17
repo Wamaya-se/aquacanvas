@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 
 interface ErrorPageProps {
@@ -9,6 +10,15 @@ interface ErrorPageProps {
 
 export default function RootError({ error, reset }: ErrorPageProps) {
 	const t = useTranslations('errors')
+
+	useEffect(() => {
+		if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return
+		import('@sentry/nextjs').then((Sentry) => {
+			Sentry.captureException(error, {
+				tags: { digest: error.digest ?? 'unknown' },
+			})
+		}).catch(() => {})
+	}, [error])
 
 	return (
 		<main id="main-content" className="flex min-h-dvh flex-col items-center justify-center px-6">
