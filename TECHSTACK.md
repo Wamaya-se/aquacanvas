@@ -94,19 +94,38 @@ Aquacanvas är en e-commerce-plattform som erbjuder AI-genererad konst. Kunden l
 
 ## Internationalisering (i18n) — Strategi
 
-> Engelska är default. Fler språk (svenska, etc.) läggs till framöver.
+> **Svenska är default** (sajten riktar sig primärt mot svensk marknad). Engelska är sekundärt språk, används även för admin-panelen.
+
+### Arkitektur
+
+- **`next-intl`** hanterar all text-översättning, datum/valuta-formatering och plural-regler
+- **Path-based routing** (`localePrefix: 'as-needed'`): svenska på `/*`, engelska på `/en/*`
+  - Admin-rutter (`/admin/*`) är **locale-neutrala** och alltid engelska — forceras via `x-pathname`-header i middleware → `src/i18n/request.ts`
+  - Alla publika sidor ligger under `src/app/[locale]/...`
+- **`localeDetection: false`** — URL:en är sanningskällan; cookie-baserad auto-redirect är avstängd för att undvika språkväxlar-loopar
+- **`NextIntlClientProvider` i `[locale]/layout.tsx`** (inte root) så provider-kontexten re-renderas korrekt vid locale-byte
+- **Middleware komponerad**: `next-intl` först (redirect/rewrite) → Supabase session-refresh på samma response → admin-role-guard
+- **Lokalt-medveten navigation** via `@/i18n/navigation` (`Link`, `redirect`, `useRouter`, `usePathname`, `getPathname`) — `next/link` används endast för admin-routes och aliaseras som `NextLink`
+- **Server Components-first** — `next-intl` stödjer Server Components utan extra klient-JS
 
 ### Principer
 
-- **`next-intl`** hanterar all text-översättning, datum/valuta-formatering och plural-regler
-- **Alla user-facing strings via `messages/{locale}.json`** — aldrig hårdkodade i JSX
-- **Server Components-first** — `next-intl` stödjer Server Components utan extra klient-JS
+- **Alla user-facing strings via `messages/{locale}.json`** — aldrig hårdkodade i JSX, inkl. `aria-label`/`placeholder`/`title`
+- `en.json` och `sv.json` **måste ha identiska nyckel-set** — synkas vid varje ny sträng
+- **Error-strängar är i18n-nycklar** (`errors.invalidCredentials`) — aldrig råa engelska meddelanden från DB/Stripe
 
 ### i18n + SEO
 
-- `hreflang`-taggar när fler språk aktiveras
-- Metadata (`title`, `description`) hämtas från översättningsfiler
-- Sitemap inkluderar alla språkversioner
+- `hreflang`-alternates genereras automatiskt i `buildMetadata` (`src/lib/metadata.ts`) baserat på `routing.locales` + `path`
+- `sitemap.ts` emitterar locale-alternates för varje public route (`localizedUrl`-helper)
+- Metadata (`title`, `description`) hämtas från `getTranslations('metadata')`
+- `<html lang>` sätts dynamiskt via `getLocale()` i `src/app/layout.tsx`
+
+### Stripe + email-integration
+
+- Stripe Checkout får `locale` (UI-språk), översatta produktnamn, locale-aware `success_url`/`cancel_url`
+- `session.metadata.locale` sparas så webhook kan välja email-mall senare
+- **TODO**: Email-templates på svenska (se ROADMAP)
 
 ---
 

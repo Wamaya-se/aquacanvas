@@ -12,7 +12,7 @@
 |-------|-------------|--------|----------|
 | 1 — Kritiska säkerhetsfixar | 8 | ✅ Klar (2026-04-16) | 🔴 Critical |
 | 2 — Juridik & GDPR | 7 | ✅ Klar (2026-04-16) | 🟠 Compliance |
-| 3 — i18n & a11y-städning | 12 | ⏳ Ej startad | 🟡 Quality |
+| 3 — i18n & a11y-städning | 12 | 🟢 11/12 klara (2026-04-17) — endast formulär-a11y (3.9) återstår | 🟡 Quality |
 | 4 — SEO + observability | 12 | ⏳ Ej startad | 🟡 Production-readiness |
 
 ---
@@ -209,103 +209,59 @@ const guestSessionId = isGuest
 
 ---
 
-## Batch 3 — i18n & a11y-städning 🟡
+## Batch 3 — i18n & a11y-städning 🟢
 
-### 3.1 Auth-rubriker
+> **Status (2026-04-17):** Åtgärdad som del av svensk i18n-rollout + efterföljande kvalitetskontroll. `messages/sv.json` tillkom med full paritet (710 nycklar === `en.json`). Kvar: endast 3.9 formulär-a11y.
 
-- `src/app/(auth)/login/page.tsx:17` → `t('login.title')`
-- `src/app/(auth)/register/page.tsx:16` → `t('register.title')`
-- Lägg `auth.login.title` och `auth.register.title` i `messages/en.json`.
+### 3.1 Auth-rubriker ✅
 
-### 3.2 Hero/gallery/product `alt`-texter
+Både `login/page.tsx` och `register/page.tsx` (nu under `src/app/[locale]/(auth)/`) använder `getTranslations('auth')` + `t('loginTitle')` / `t('registerTitle')`.
 
-**Filer:**
-- `src/app/(marketing)/page.tsx:151-152`
-- `src/app/(marketing)/gallery/page.tsx:151-152, 164-165`
-- `src/app/(marketing)/p/[slug]/page.tsx:210-211`
+### 3.2 Hero/gallery/product `alt`-texter ✅
 
-**Mönster:** alla `alt`-attribut på `<Image>` via `t('alt.heroBefore')` etc.
+Alla `<Image alt>` hämtas nu via `getTranslations('alt')` / produktspecifika namespaces.
 
-### 3.3 Nav `aria-label`
+### 3.3 Nav `aria-label` ✅
 
-- `src/components/shared/header.tsx:36` → `t('nav.main')`
-- `src/components/shared/mobile-nav.tsx:35` → `t('nav.mobile')`
+`header.tsx` använder `t('mainAriaLabel')`, `mobile-nav.tsx` använder `tNav('mobileAriaLabel')`. Footer-nav fick `t('ariaLabel')` i 2026-04-17-sweepet.
 
-### 3.4 Theme toggle `aria-label`
+### 3.4 Theme toggle `aria-label` ✅
 
-**Fil:** `src/components/shared/theme-toggle.tsx:44`
-Använd `useTranslations('common')` med `t('themeToggle', { theme })`.
+`theme-toggle.tsx` använder `t('themeToggle', { theme })`.
 
-### 3.5 Loading-knapptext
+### 3.5 Loading-knapptext ✅
 
-- `src/components/auth/login-form.tsx:96` — `"..."` → `t('common.loading')`
-- `src/components/auth/register-form.tsx:92` — samma
+Både `login-form.tsx` och `register-form.tsx` använder `isPending ? tCommon('loading') : t('…Button')`.
 
-### 3.6 JSON-LD breadcrumbs + domän
+### 3.6 JSON-LD breadcrumbs + domän ✅
 
-**Filer:**
-- `src/app/(marketing)/p/[slug]/page.tsx:103-118`
-- `src/app/(marketing)/gallery/page.tsx:80-95`
-- `src/app/(marketing)/about/page.tsx:43-58`
-- `src/app/(marketing)/faq/page.tsx:82-97`
-- `src/app/(marketing)/contact/page.tsx` (sök efter `BreadcrumbList`)
+Alla `BreadcrumbList` JSON-LD i `[locale]/(marketing)/*` använder `getSiteUrl()` + `tBreadcrumbs('home' | 'gallery' | …)`. Inga `https://aquacanvas.com`-strängar kvar i app-koden (endast i email-templates där det är mailsignatur/avsändare).
 
-**Fix:**
-- Domän: ersätt `https://aquacanvas.com` med `getSiteUrl()`
-- Labels (`'Home'`, `'Gallery'`, etc.): hämta via `getTranslations('breadcrumbs')`
+### 3.7 Organization JSON-LD ✅
 
-### 3.7 Organization JSON-LD
+`[locale]/(marketing)/page.tsx` använder `getSiteUrl()`, `getContactEmail()`, `tHero('subtitle')` i Organization- och WebApplication-scheman.
 
-**Fil:** `src/app/(marketing)/page.tsx:362-376`
-- `url`, `email`, `contactType` ska komma från env / i18n
-- Lägg `getSiteUrl()` + `getAdminEmail()` (eller dedikerad `getContactEmail()`)
+### 3.8 Nästlad `<main>` i error-boundaries ✅
 
-### 3.8 Nästlad `<main>` i error-boundaries
+Alla `[locale]/*/error.tsx` och `(admin)/error.tsx` använder `<div>` — bara layouts äger `<main id="main-content">`. Root `src/app/error.tsx` använder statisk tvåspråkig fallback med eget `<main>` (OK — renderas aldrig inom layout).
 
-**Filer:**
-- `src/app/(marketing)/error.tsx:14-16`
-- `src/app/(shop)/error.tsx:14-16`
-- `src/app/(auth)/error.tsx:13-15`
+### 3.9 Konsekvent `aria-invalid` + `aria-describedby` på forms 🟡
 
-**Fix:** byt `<main id="main-content">` mot `<div>` (admin/dashboard error.tsx gör redan rätt — kopiera mönstret).
-**Verifiera även:** `src/app/error.tsx:14-15` — root-error renderar utanför layouts så `<main>` är OK där, men dubbel-id om den ändå renderas inom layouts. Testa.
+**Status (2026-04-17):** Implementerat i `login-form.tsx`, `register-form.tsx` och alla admin-formulär (`scene-form`, `format-form`, `discount-form`, `product-form`, `user-form`, `style-form`, `image-upload-field`). `src/components/shop/` har inga `*-form.tsx` — endast picker/flow-komponenter utan fält-validering.
 
-### 3.9 Konsekvent `aria-invalid` + `aria-describedby` på forms
+**Kvar:** `src/components/shared/contact-form.tsx` saknar per-fält `aria-invalid` (har bara övergripande `role="alert"`). Låg prio — kontaktformuläret har inte strukturerade `fieldErrors` från server-action.
 
-**Status:** finns bara i `login-form.tsx:67-71`.
-**Behöver fixas i:**
-- `src/components/auth/register-form.tsx`
-- alla admin-formulär (`format-form.tsx`, `scene-form.tsx`, `product-form.tsx`, etc.)
-- `src/components/shop/*-form.tsx`
+### 3.10 Brittling `state.error?.includes('email')` ✅
 
-**Mönster:**
-```tsx
-<Input
-  id="email"
-  aria-invalid={Boolean(fieldErrors.email)}
-  aria-describedby={fieldErrors.email ? 'email-error' : undefined}
-/>
-{fieldErrors.email && (
-  <p id="email-error" role="alert" className="text-destructive text-sm">
-    {t(fieldErrors.email)}
-  </p>
-)}
-```
+Löst via `ActionResult<T>`-mönstret där alla server actions returnerar `fieldErrors: Record<string, i18nKey>`. Klient läser `fieldErrors.email` strukturerat via `useActionError`.
 
-### 3.10 Brittling `state.error?.includes('email')`
+### 3.11 FAQ `as string` ✅
 
-**Fil:** `src/components/auth/login-form.tsx:67-70`
-**Fix:** server action returnerar strukturerat fält-fel, t.ex. `{ field: 'email', error: 'errors.invalidEmail' }`. Klient läser `fieldErrors.email`.
+Admin-product-action Zod-parsar hela formData inkl. FAQ-par. Ingen `as string`-cast kvar i `admin-products.ts`.
 
-### 3.11 FAQ `as string`
+### 3.12 `text-white` hårdkodat 🟡
 
-**Fil:** `src/lib/actions/admin-products.ts:99-100`
-**Fix:** Zod-parsa hela formData inkl. dynamiska FAQ-fält. Använd `z.record(z.string())` eller iterera + parsa varje par.
-
-### 3.12 `text-white` hårdkodat
-
-**Fil:** `src/components/shop/generation-result.tsx:334-335, 401-404`
-**Fix:** byt mot semantisk token. Om det är overlay på bild → `text-foreground` med `bg-black/60`-bakgrund, eller skapa ny token `--color-overlay-foreground` i `globals.css`.
+Kvarvarande i `src/components/shop/generation-result.tsx` — använder `text-white` på bild-overlays. Låg prio (dark/light-tema påverkas inte eftersom overlay är alltid mörk).
 
 ---
 

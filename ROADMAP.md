@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-17 (i18n — svenska som default + hreflang) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-17 (i18n kvalitetskontroll — Stripe-locale, OAuth-callback path, error-boundaries, Batch 3 ~klar) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** i18n grundplåt på plats (sv default, en på `/en/*`). Kvar i Fas 13: kvarvarande tillväxt/konverterings-items (email capture, reviews, abandoned cart).
+**Nästa upp:** i18n fullt utrullat och kvalitetsgranskat (sv default, en på `/en/*`, Stripe-locale, error-boundaries, Audit Batch 3 ~klar). Kvar i Fas 13: email-templates på svenska + övriga tillväxt/konverterings-items (email capture, reviews, abandoned cart).
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
 
