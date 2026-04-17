@@ -465,6 +465,8 @@
 		"previewStatusProcessing": "Processing",
 		"previewStatusSuccess": "Completed",
 		"previewStatusFail": "Failed",
+		"previewFailReason": "Failure reason",
+		"previewFailCode": "Failure code",
 		"allScenes": "All Scenes",
 		"newScene": "New Scene",
 		"editScene": "Edit Scene",

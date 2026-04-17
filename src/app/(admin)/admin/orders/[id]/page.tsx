@@ -62,16 +62,27 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
 	const { data: envPreviews } = await supabase
 		.from('environment_previews')
-		.select('id, status, image_path, environment_scenes!inner(name)')
+		.select('id, status, image_path, ai_task_id, ai_cost_time_ms, metadata, environment_scenes!inner(name)')
 		.eq('order_id', order.id)
 
-	const environmentPreviews = (envPreviews ?? []).map((ep) => ({
-		name: getSceneName(ep.environment_scenes),
-		status: ep.status,
-		imageUrl: ep.image_path
-			? supabase.storage.from('images').getPublicUrl(ep.image_path).data.publicUrl
-			: null,
-	}))
+	const environmentPreviews = (envPreviews ?? []).map((ep) => {
+		const metadata = (ep.metadata ?? {}) as {
+			fail_msg?: string | null
+			fail_code?: string | null
+			failed_at?: string | null
+		}
+		return {
+			name: getSceneName(ep.environment_scenes),
+			status: ep.status,
+			imageUrl: ep.image_path
+				? supabase.storage.from('images').getPublicUrl(ep.image_path).data.publicUrl
+				: null,
+			taskId: ep.ai_task_id,
+			costTimeMs: ep.ai_cost_time_ms,
+			failMsg: metadata.fail_msg ?? null,
+			failCode: metadata.fail_code ?? null,
+		}
+	})
 
 	return (
 		<div>
@@ -255,8 +266,8 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 							</h2>
 							<div className="grid gap-4 sm:grid-cols-3">
 								{environmentPreviews.map((ep, i) => (
-									<div key={i}>
-										<p className="mb-2 font-sans text-xs font-medium text-muted-foreground">
+									<div key={i} className="space-y-2">
+										<p className="font-sans text-xs font-medium text-muted-foreground">
 											{ep.name}
 										</p>
 										{ep.imageUrl ? (
@@ -276,6 +287,40 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 													{t(`previewStatus${ep.status.charAt(0).toUpperCase()}${ep.status.slice(1)}` as 'previewStatusPending')}
 												</Badge>
 											</div>
+										)}
+										{ep.status === 'fail' && (ep.failMsg || ep.failCode || ep.taskId) && (
+											<dl className="space-y-1 rounded-lg bg-destructive/5 p-3 text-xs">
+												{ep.failMsg && (
+													<div>
+														<dt className="font-sans font-medium text-destructive">
+															{t('previewFailReason')}
+														</dt>
+														<dd className="font-sans text-muted-foreground break-words">
+															{ep.failMsg}
+														</dd>
+													</div>
+												)}
+												{ep.failCode && (
+													<div>
+														<dt className="font-sans font-medium text-muted-foreground">
+															{t('previewFailCode')}
+														</dt>
+														<dd className="font-mono text-muted-foreground">
+															{ep.failCode}
+														</dd>
+													</div>
+												)}
+												{ep.taskId && (
+													<div>
+														<dt className="font-sans font-medium text-muted-foreground">
+															{t('aiTaskId')}
+														</dt>
+														<dd className="font-mono text-muted-foreground break-all">
+															{ep.taskId}
+														</dd>
+													</div>
+												)}
+											</dl>
 										)}
 									</div>
 								))}

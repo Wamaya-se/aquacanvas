@@ -143,6 +143,7 @@ export async function getTaskStatus(taskId: string): Promise<{
 	state: KieTaskState
 	resultUrls: string[] | null
 	failMsg: string | null
+	failCode: string | null
 	costTime: number
 }> {
 	const url = new URL(`${KIE_BASE_URL}/api/v1/jobs/recordInfo`)
@@ -164,7 +165,7 @@ export async function getTaskStatus(taskId: string): Promise<{
 		throw new Error(`Kie.ai getTask error (${json.code}): ${json.msg}`)
 	}
 
-	const { state, resultJson, failMsg, costTime } = json.data
+	const { state, resultJson, failMsg, failCode, costTime } = json.data
 
 	let resultUrls: string[] | null = null
 	if (state === 'success' && resultJson) {
@@ -180,6 +181,7 @@ export async function getTaskStatus(taskId: string): Promise<{
 		state,
 		resultUrls,
 		failMsg: failMsg || null,
+		failCode: failCode || null,
 		costTime,
 	}
 }

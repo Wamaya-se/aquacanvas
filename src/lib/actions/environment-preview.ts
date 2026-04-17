@@ -322,9 +322,27 @@ export async function checkEnvironmentPreviewsStatus(
 					imageUrl: publicUrl,
 				})
 			} else if (taskStatus.state === 'fail') {
+				console.error('[checkEnvironmentPreviews] Kie task failed', {
+					orderId: order.id,
+					sceneName,
+					taskId: preview.ai_task_id,
+					failCode: taskStatus.failCode,
+					failMsg: taskStatus.failMsg,
+				})
+
 				await adminDb
 					.from('environment_previews')
-					.update({ status: 'fail' as PreviewStatus })
+					.update({
+						status: 'fail' as PreviewStatus,
+						ai_cost_time_ms: taskStatus.costTime,
+						metadata: {
+							kie_task_id: preview.ai_task_id,
+							model: 'flux-2/flex-image-to-image',
+							fail_code: taskStatus.failCode,
+							fail_msg: taskStatus.failMsg,
+							failed_at: new Date().toISOString(),
+						},
+					})
 					.eq('id', preview.id)
 
 				results.push({
