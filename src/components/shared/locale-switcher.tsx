@@ -2,9 +2,10 @@
 
 import { useTransition } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { useSearchParams } from 'next/navigation'
 import { Languages } from 'lucide-react'
 import { usePathname, useRouter } from '@/i18n/navigation'
-import { routing } from '@/i18n/routing'
+import { routing, type Locale } from '@/i18n/routing'
 import { Button } from '@/components/ui/button'
 import {
 	DropdownMenu,
@@ -19,16 +20,18 @@ const LOCALE_LABELS: Record<string, string> = {
 }
 
 export function LocaleSwitcher() {
-	const activeLocale = useLocale()
+	const activeLocale = useLocale() as Locale
 	const router = useRouter()
 	const pathname = usePathname()
+	const searchParams = useSearchParams()
 	const [isPending, startTransition] = useTransition()
 	const t = useTranslations('common')
 
-	function switchLocale(nextLocale: string) {
+	function switchLocale(nextLocale: Locale) {
 		if (nextLocale === activeLocale) return
+		const query = Object.fromEntries(searchParams.entries())
 		startTransition(() => {
-			router.replace(pathname, { locale: nextLocale })
+			router.replace({ pathname, query }, { locale: nextLocale })
 		})
 	}
 
