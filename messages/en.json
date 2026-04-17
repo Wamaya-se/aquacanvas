@@ -147,7 +147,8 @@
 		"privacy": "Privacy Policy",
 		"terms": "Terms of Service",
 		"cookies": "Cookie Policy",
-		"contact": "Contact"
+		"contact": "Contact",
+		"ariaLabel": "Footer"
 	},
 	"metadata": {
 		"homeTitle": "Aquacanvas — Transform Your Photos Into Art",
@@ -232,7 +233,8 @@
 		"t2Text": "As a photographer, I'm picky about image quality. Aquacanvas genuinely impressed me — the AI captures textures and lighting beautifully.",
 		"t3Name": "Sofia R.",
 		"t3Role": "Gift Shopper",
-		"t3Text": "Turned our wedding photo into an oil painting-style print for my husband's birthday. He was speechless. Best gift idea ever."
+		"t3Text": "Turned our wedding photo into an oil painting-style print for my husband's birthday. He was speechless. Best gift idea ever.",
+		"starsAriaLabel": "5 out of 5 stars"
 	},
 	"landingFaq": {
 		"heading": "Common Questions",
@@ -273,6 +275,8 @@
 		"backToHome": "Back to home",
 		"simulatePurchase": "Simulate Purchase (Dev)",
 		"simulatePurchaseDesc": "Skip Stripe and mark as paid for testing",
+		"stripeProductName": "Aquacanvas — {style}",
+		"stripeProductDescription": "AI-generated artwork · {format}",
 		"meta": {
 			"successTitle": "Order Confirmed — Aquacanvas",
 			"successDescription": "Your artwork order has been confirmed. We'll prepare your print soon.",

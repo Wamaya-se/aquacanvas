@@ -10,6 +10,8 @@ interface ErrorPageProps {
 
 export default function MarketingError({ error, reset }: ErrorPageProps) {
 	const t = useTranslations('errors')
+	const tCommon = useTranslations('common')
+	void error
 
 	return (
 		<div className="flex min-h-[50vh] flex-col items-center justify-center px-6">
@@ -17,7 +19,7 @@ export default function MarketingError({ error, reset }: ErrorPageProps) {
 				{t('generic')}
 			</h1>
 			<Button variant="brand" className="mt-6" onClick={reset}>
-				{t('generic')}
+				{tCommon('tryAgain')}
 			</Button>
 		</div>
 	)

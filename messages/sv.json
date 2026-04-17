@@ -147,7 +147,8 @@
 		"privacy": "Integritetspolicy",
 		"terms": "Användarvillkor",
 		"cookies": "Cookiepolicy",
-		"contact": "Kontakt"
+		"contact": "Kontakt",
+		"ariaLabel": "Sidfot"
 	},
 	"metadata": {
 		"homeTitle": "Aquacanvas — Förvandla dina foton till konst",
@@ -232,7 +233,8 @@
 		"t2Text": "Som fotograf är jag kräsen med bildkvalitet. Aquacanvas imponerade verkligen — AI:n fångar texturer och ljus på ett vackert sätt.",
 		"t3Name": "Sofia R.",
 		"t3Role": "Presentshoppar",
-		"t3Text": "Förvandlade vårt bröllopsfoto till en oljemålning som födelsedagspresent till min man. Han blev mållös. Bästa presentidén någonsin."
+		"t3Text": "Förvandlade vårt bröllopsfoto till en oljemålning som födelsedagspresent till min man. Han blev mållös. Bästa presentidén någonsin.",
+		"starsAriaLabel": "5 av 5 stjärnor"
 	},
 	"landingFaq": {
 		"heading": "Vanliga frågor",
@@ -273,6 +275,8 @@
 		"backToHome": "Tillbaka till startsidan",
 		"simulatePurchase": "Simulera köp (utveckling)",
 		"simulatePurchaseDesc": "Hoppa över Stripe och markera som betald för testning",
+		"stripeProductName": "Aquacanvas — {style}",
+		"stripeProductDescription": "AI-genererad konst · {format}",
 		"meta": {
 			"successTitle": "Beställning bekräftad — Aquacanvas",
 			"successDescription": "Din beställning är bekräftad. Vi förbereder din tavla inom kort.",

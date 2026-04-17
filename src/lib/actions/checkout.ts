@@ -1,12 +1,20 @@
 'use server'
 
 import { z } from 'zod'
+import { getLocale, getTranslations } from 'next-intl/server'
+import { getPathname } from '@/i18n/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripe } from '@/lib/stripe'
 import { getSiteUrl } from '@/lib/env'
 import { checkoutSchema, guestSessionIdSchema } from '@/validators/order'
 import type { ActionResult } from '@/types/actions'
+
+type StripeLocale = 'sv' | 'en'
+
+function toStripeLocale(locale: string): StripeLocale {
+	return locale === 'sv' ? 'sv' : 'en'
+}
 
 interface CheckoutSessionData {
 	url: string
@@ -149,17 +157,26 @@ export async function createCheckoutSession(
 
 	const siteUrl = getSiteUrl()
 	const stripe = getStripe()
+	const locale = await getLocale()
+	const stripeLocale = toStripeLocale(locale)
+	const tCheckout = await getTranslations('checkout')
+
+	const successPath = getPathname({ href: '/checkout/success', locale })
+	const cancelPath = getPathname({ href: '/checkout/cancel', locale })
 
 	try {
 		const session = await stripe.checkout.sessions.create({
 			mode: 'payment',
+			locale: stripeLocale,
 			line_items: [
 				{
 					price_data: {
 						currency: 'sek',
 						product_data: {
-							name: `Aquacanvas — ${style.name}`,
-							description: `AI-generated artwork · ${format.name}`,
+							name: tCheckout('stripeProductName', { style: style.name }),
+							description: tCheckout('stripeProductDescription', {
+								format: format.name,
+							}),
 						},
 						unit_amount: totalPriceCents,
 					},
@@ -170,12 +187,13 @@ export async function createCheckoutSession(
 			metadata: {
 				orderId: order.id,
 				formatId: format.id,
+				locale,
 				...(discountCodeId ? { discountCodeId } : {}),
 				...(user ? { userId: user.id } : { guestSessionId: order.guest_session_id ?? '' }),
 			},
 			...(user ? { customer_email: user.email ?? undefined } : {}),
-			success_url: `${siteUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-			cancel_url: `${siteUrl}/checkout/cancel?order_id=${order.id}`,
+			success_url: `${siteUrl}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
+			cancel_url: `${siteUrl}${cancelPath}?order_id=${order.id}`,
 		})
 
 		if (!session.url) {

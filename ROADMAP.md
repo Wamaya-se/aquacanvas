@@ -311,7 +311,8 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Tillväxt & konvertering
 
-- [x] **Svenska översättning** (`messages/sv.json`) + `hreflang`-implementation — path-based routing (sv default på `/`, en på `/en/*`), `next-intl` middleware komponerad med Supabase session-refresh, admin förblir engelska, locale switcher i header, `buildMetadata` + `sitemap.ts` genererar `hreflang` automatiskt (2026-04-17)
+- [x] **Svenska översättning** (`messages/sv.json`) + `hreflang`-implementation — path-based routing (sv default på `/`, en på `/en/*`), `next-intl` middleware komponerad med Supabase session-refresh, admin förblir engelska, locale switcher i header, `buildMetadata` + `sitemap.ts` genererar `hreflang` automatiskt. `NextIntlClientProvider` flyttad till `[locale]/layout.tsx` så switcher fungerar stabilt över navigering. Stripe checkout använder `getLocale()` för UI-språk, `success_url`/`cancel_url` och produktnamn; locale skickas med i session-metadata för senare email-flöden. OAuth callback-URL bygger rätt path via `getPathname`. Alla error-boundaries återställer via `common.tryAgain`; root `error.tsx` använder statisk tvåspråkig fallback för att undvika provider-krasch. (2026-04-17)
+- [ ] **Email-templates på svenska** — `order-confirmation`, `order-shipped`, `admin-order-notification` är hårdkodade på engelska. Lägg till `locale`-kolumn på `orders`, läs från Stripe metadata i webhook, översätt templates via `getTranslations` med explicit locale.
 - [ ] E-post-capture innan generering (för abandoned cart + lead gen)
 - [ ] Abandoned cart e-post-sekvens (Resend + cron / Supabase Edge Function)
 - [ ] Kundrecensioner/betyg på produktsidor (social proof + SEO)

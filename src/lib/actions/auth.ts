@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
-import { redirect as localeRedirect } from '@/i18n/navigation'
+import { redirect as localeRedirect, getPathname } from '@/i18n/navigation'
 import { getLocale } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { loginSchema, registerSchema } from '@/validators/auth'
@@ -90,11 +90,16 @@ export async function register(
 
 	const supabase = await createClient()
 
+	// Callback-routen finns på `/[locale]/callback`. Bygg URL:en med
+	// `getPathname` så att email-länken respekterar aktiv locale.
+	const locale = await getLocale()
+	const callbackPath = getPathname({ href: '/callback', locale })
+
 	const { error } = await supabase.auth.signUp({
 		email: parsed.data.email,
 		password: parsed.data.password,
 		options: {
-			emailRedirectTo: `${getSiteUrl()}/auth/callback`,
+			emailRedirectTo: `${getSiteUrl()}${callbackPath}`,
 		},
 	})
 
@@ -118,6 +123,6 @@ export async function logout(): Promise<void> {
 	const supabase = await createClient()
 	await supabase.auth.signOut()
 	revalidatePath('/', 'layout')
-	const locale = await getLocale()
-	localeRedirect({ href: '/', locale })
+	const currentLocale = await getLocale()
+	localeRedirect({ href: '/', locale: currentLocale })
 }

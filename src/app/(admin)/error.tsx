@@ -9,6 +9,8 @@ interface ErrorPageProps {
 
 export default function AdminError({ error, reset }: ErrorPageProps) {
 	const t = useTranslations('errors')
+	const tCommon = useTranslations('common')
+	void error
 
 	return (
 		<div className="flex min-h-[50vh] flex-col items-center justify-center px-6">
@@ -19,7 +21,7 @@ export default function AdminError({ error, reset }: ErrorPageProps) {
 				onClick={reset}
 				className="mt-6 rounded-xl bg-brand px-6 py-3 font-sans font-medium text-on-brand transition-transform hover:scale-[1.02] active:scale-[0.97]"
 			>
-				{t('generic')}
+				{tCommon('tryAgain')}
 			</button>
 		</div>
 	)

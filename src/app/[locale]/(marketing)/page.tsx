@@ -267,7 +267,7 @@ export default async function HomePage() {
 						{testimonials.map((t) => (
 							<Card key={t.name} className="flex flex-col justify-between">
 								<CardContent className="pt-0">
-									<div className="mb-4 flex gap-0.5" aria-label="5 out of 5 stars">
+									<div className="mb-4 flex gap-0.5" aria-label={tTest('starsAriaLabel')}>
 										{Array.from({ length: 5 }).map((_, i) => (
 											<Star
 												key={i}

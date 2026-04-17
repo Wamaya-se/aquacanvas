@@ -17,7 +17,7 @@ export async function Footer() {
 					</p>
 				</div>
 
-			<nav aria-label="Footer" className="flex flex-wrap items-center gap-6">
+			<nav aria-label={t('ariaLabel')} className="flex flex-wrap items-center gap-6">
 				<Link
 					href="/about"
 					className="font-sans text-xs text-muted-foreground transition-colors hover:text-foreground"
