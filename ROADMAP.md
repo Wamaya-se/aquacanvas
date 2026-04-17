@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-16 (Batch 4 — SEO + observability klar) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-17 (i18n — svenska som default + hreflang) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** Fas 12 slutförd — välj nästa område (Fas 13: Strategiska produktidéer eller ny audit).
+**Nästa upp:** i18n grundplåt på plats (sv default, en på `/en/*`). Kvar i Fas 13: kvarvarande tillväxt/konverterings-items (email capture, reviews, abandoned cart).
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
 
@@ -311,7 +311,7 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Tillväxt & konvertering
 
-- [ ] **Svenska översättning** (`messages/sv.json`) + `hreflang`-implementation — sajten är svensk, stor SEO-vinst
+- [x] **Svenska översättning** (`messages/sv.json`) + `hreflang`-implementation — path-based routing (sv default på `/`, en på `/en/*`), `next-intl` middleware komponerad med Supabase session-refresh, admin förblir engelska, locale switcher i header, `buildMetadata` + `sitemap.ts` genererar `hreflang` automatiskt (2026-04-17)
 - [ ] E-post-capture innan generering (för abandoned cart + lead gen)
 - [ ] Abandoned cart e-post-sekvens (Resend + cron / Supabase Edge Function)
 - [ ] Kundrecensioner/betyg på produktsidor (social proof + SEO)

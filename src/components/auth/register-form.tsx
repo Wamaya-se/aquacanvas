@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import { register } from '@/lib/actions/auth'
 import { useActionError } from '@/hooks/use-action-error'
 import type { ActionResult } from '@/types/actions'

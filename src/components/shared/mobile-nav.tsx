@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
+import NextLink from 'next/link'
 import { Menu, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+import { Link } from '@/i18n/navigation'
 import { Button } from '@/components/ui/button'
 import { logout } from '@/lib/actions/auth'
 
@@ -47,13 +48,13 @@ export function MobileNav({ items, isLoggedIn, isAdmin }: MobileNavProps) {
 							<>
 								<div className="my-2 h-px bg-outline-variant/20" />
 								{isAdmin && (
-									<Link
+									<NextLink
 										href="/admin"
 										onClick={() => setIsOpen(false)}
 										className="rounded-lg px-3 py-2.5 font-sans text-sm text-brand transition-colors hover:bg-surface-container-high"
 									>
 										{tNav('admin')}
-									</Link>
+									</NextLink>
 								)}
 								<form action={logout}>
 									<button

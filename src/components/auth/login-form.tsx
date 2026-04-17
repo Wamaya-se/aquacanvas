@@ -3,7 +3,7 @@
 import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import { login } from '@/lib/actions/auth'
 import { useActionError } from '@/hooks/use-action-error'
 import type { ActionResult } from '@/types/actions'

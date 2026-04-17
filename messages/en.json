@@ -14,7 +14,8 @@
 		"learnMore": "Learn more",
 		"getStarted": "Get started",
 		"skipToContent": "Skip to main content",
-		"themeToggle": "Current theme: {theme}. Click to switch."
+		"themeToggle": "Current theme: {theme}. Click to switch.",
+		"languageSwitcher": "Change language. Current: {locale}"
 	},
 	"nav": {
 		"home": "Home",

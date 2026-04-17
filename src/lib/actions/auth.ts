@@ -3,6 +3,8 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
+import { redirect as localeRedirect } from '@/i18n/navigation'
+import { getLocale } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { loginSchema, registerSchema } from '@/validators/auth'
 import type { ActionResult } from '@/types/actions'
@@ -116,5 +118,6 @@ export async function logout(): Promise<void> {
 	const supabase = await createClient()
 	await supabase.auth.signOut()
 	revalidatePath('/', 'layout')
-	redirect('/')
+	const locale = await getLocale()
+	localeRedirect({ href: '/', locale })
 }

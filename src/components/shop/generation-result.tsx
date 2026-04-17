@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/navigation'
 import Image from 'next/image'
 import { Download, ShoppingBag, RotateCcw, FlaskConical, Loader2, Tag, Expand } from 'lucide-react'
 import { useTranslations } from 'next-intl'

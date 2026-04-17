@@ -1,8 +1,10 @@
-import Link from 'next/link'
+import NextLink from 'next/link'
+import { Link } from '@/i18n/navigation'
 import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/shared/theme-toggle'
+import { LocaleSwitcher } from '@/components/shared/locale-switcher'
 import { MobileNav } from '@/components/shared/mobile-nav'
 import { LogoutButton } from '@/components/shared/logout-button'
 
@@ -47,13 +49,14 @@ export async function Header() {
 				</div>
 
 				<div className="flex items-center gap-2">
+					<LocaleSwitcher />
 					<ThemeToggle />
 
 					{user && (
 						<div className="hidden md:flex md:items-center md:gap-2">
 							{isAdmin && (
 								<Button variant="ghost" size="sm" asChild>
-									<Link href="/admin">{t('admin')}</Link>
+									<NextLink href="/admin">{t('admin')}</NextLink>
 								</Button>
 							)}
 							<LogoutButton />
