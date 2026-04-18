@@ -76,6 +76,23 @@ async function verifyOrderOwnership(
 	return { success: true, order, storagePrefix }
 }
 
+type PreviewFailStage =
+	| 'artwork_upload'
+	| 'scene_fetch'
+	| 'scene_upload'
+	| 'task_create'
+	| 'insert_record'
+
+function getErrorMessage(err: unknown): string {
+	if (err instanceof Error) return err.message
+	if (typeof err === 'string') return err
+	try {
+		return JSON.stringify(err)
+	} catch {
+		return 'Unknown error'
+	}
+}
+
 export async function generateEnvironmentPreviews(
 	orderId: string,
 	guestSessionId?: string,
@@ -102,15 +119,24 @@ export async function generateEnvironmentPreviews(
 
 	const adminDb = createAdminClient()
 
-	// Prevent duplicate generation: check if previews already exist
+	// Check for existing previews. If any are still in-flight or succeeded,
+	// block duplicate generation. If all are failed, clean them up so the
+	// user can retry and the new failure reasons are captured on the order.
 	const { data: existingPreviews } = await adminDb
 		.from('environment_previews')
-		.select('id')
+		.select('id, status')
 		.eq('order_id', order.id)
-		.limit(1)
 
 	if (existingPreviews && existingPreviews.length > 0) {
-		return { success: false, error: 'errors.previewsAlreadyGenerated' }
+		const hasNonFail = existingPreviews.some((p) => p.status !== 'fail')
+		if (hasNonFail) {
+			return { success: false, error: 'errors.previewsAlreadyGenerated' }
+		}
+		await adminDb
+			.from('environment_previews')
+			.delete()
+			.eq('order_id', order.id)
+			.eq('status', 'fail')
 	}
 
 	const { data: scenes, error: scenesError } = await adminDb
@@ -123,7 +149,51 @@ export async function generateEnvironmentPreviews(
 		return { success: false, error: 'errors.noScenesAvailable' }
 	}
 
-	// Download the generated artwork from Storage and upload to Kie (once)
+	async function insertFailRow(
+		sceneId: string,
+		sceneName: string,
+		stage: PreviewFailStage,
+		failMsg: string,
+		failCode: string | null = null,
+	): Promise<EnvironmentPreviewItem> {
+		const metadata = {
+			model: 'flux-2/flex-image-to-image',
+			stage,
+			fail_msg: failMsg,
+			fail_code: failCode,
+			failed_at: new Date().toISOString(),
+		}
+
+		const { data: failRow, error: insertError } = await adminDb
+			.from('environment_previews')
+			.insert({
+				order_id: order.id,
+				scene_id: sceneId,
+				status: 'fail' as PreviewStatus,
+				metadata,
+			})
+			.select('id')
+			.single()
+
+		if (insertError || !failRow) {
+			console.error(
+				'[generateEnvironmentPreviews] failed to persist fail row',
+				{ sceneId, stage, failMsg, insertError },
+			)
+		}
+
+		return {
+			id: failRow?.id ?? `transient-${sceneId}`,
+			sceneId,
+			sceneName,
+			status: 'fail',
+			imageUrl: null,
+		}
+	}
+
+	// Download the generated artwork from Storage and upload to Kie (once).
+	// On failure, persist a fail row per scene so the admin order page
+	// surfaces the actual cause instead of a silent retry screen.
 	const { data: artworkData } = adminDb.storage
 		.from('images')
 		.getPublicUrl(order.generated_image_path)
@@ -131,73 +201,97 @@ export async function generateEnvironmentPreviews(
 	let artworkKieUrl: string
 	try {
 		const artworkRes = await fetch(artworkData.publicUrl)
-		if (!artworkRes.ok) throw new Error(`Fetch artwork failed: ${artworkRes.status}`)
+		if (!artworkRes.ok) {
+			throw new Error(`Fetch artwork failed: ${artworkRes.status}`)
+		}
 		const artworkBuffer = await artworkRes.arrayBuffer()
 		artworkKieUrl = await uploadFileToKie(artworkBuffer, 'image/png', 'artwork.png')
 	} catch (err) {
+		const failMsg = getErrorMessage(err)
 		console.error('[generateEnvironmentPreviews] artwork upload to Kie', err)
-		return { success: false, error: 'errors.generationFailed' }
-	}
 
-	const previews: EnvironmentPreviewItem[] = []
-
-	// Create tasks for each scene in parallel
-	const taskPromises = scenes.map(async (scene) => {
-		// Download scene image from Storage and upload to Kie
-		const { data: sceneData } = adminDb.storage
-			.from('images')
-			.getPublicUrl(scene.image_path)
-
-		const sceneRes = await fetch(sceneData.publicUrl)
-		if (!sceneRes.ok) throw new Error(`Fetch scene failed: ${sceneRes.status}`)
-		const sceneBuffer = await sceneRes.arrayBuffer()
-		const sceneKieUrl = await uploadFileToKie(
-			sceneBuffer,
-			'image/jpeg',
-			`scene-${scene.id}.jpeg`,
+		const failPreviews = await Promise.all(
+			scenes.map((scene) =>
+				insertFailRow(scene.id, scene.name, 'artwork_upload', failMsg),
+			),
 		)
 
-		const { taskId } = await createEnvironmentPreviewTask(artworkKieUrl, sceneKieUrl)
-
-		const { data: preview, error: insertError } = await adminDb
-			.from('environment_previews')
-			.insert({
-				order_id: order.id,
-				scene_id: scene.id,
-				ai_task_id: taskId,
-				status: 'processing' as PreviewStatus,
-				metadata: { kie_task_id: taskId, model: 'flux-2/flex-image-to-image' },
-			})
-			.select('id')
-			.single()
-
-		if (insertError || !preview) {
-			console.error('[generateEnvironmentPreviews] insert preview', insertError)
-			throw new Error('Failed to insert preview record')
-		}
-
 		return {
-			id: preview.id,
-			sceneId: scene.id,
-			sceneName: scene.name,
-			status: 'processing' as PreviewStatus,
-			imageUrl: null,
+			success: true,
+			data: { previews: failPreviews },
 		}
-	})
-
-	try {
-		const results = await Promise.all(taskPromises)
-		previews.push(...results)
-	} catch (err) {
-		console.error('[generateEnvironmentPreviews] task creation failed', err)
-		// Clean up any partial inserts
-		await adminDb
-			.from('environment_previews')
-			.delete()
-			.eq('order_id', order.id)
-
-		return { success: false, error: 'errors.generationFailed' }
 	}
+
+	// Create tasks for each scene independently. A failure in one scene
+	// (e.g. missing storage file, Kie rejecting input) is persisted as a
+	// fail row for that scene without aborting the others.
+	const previews = await Promise.all(
+		scenes.map(async (scene): Promise<EnvironmentPreviewItem> => {
+			let stage: PreviewFailStage = 'scene_fetch'
+			try {
+				const { data: sceneData } = adminDb.storage
+					.from('images')
+					.getPublicUrl(scene.image_path)
+
+				const sceneRes = await fetch(sceneData.publicUrl)
+				if (!sceneRes.ok) {
+					throw new Error(
+						`Fetch scene failed (${sceneRes.status}): ${scene.image_path}`,
+					)
+				}
+
+				stage = 'scene_upload'
+				const sceneBuffer = await sceneRes.arrayBuffer()
+				const sceneKieUrl = await uploadFileToKie(
+					sceneBuffer,
+					'image/jpeg',
+					`scene-${scene.id}.jpeg`,
+				)
+
+				stage = 'task_create'
+				const { taskId } = await createEnvironmentPreviewTask(
+					artworkKieUrl,
+					sceneKieUrl,
+				)
+
+				stage = 'insert_record'
+				const { data: preview, error: insertError } = await adminDb
+					.from('environment_previews')
+					.insert({
+						order_id: order.id,
+						scene_id: scene.id,
+						ai_task_id: taskId,
+						status: 'processing' as PreviewStatus,
+						metadata: {
+							kie_task_id: taskId,
+							model: 'flux-2/flex-image-to-image',
+						},
+					})
+					.select('id')
+					.single()
+
+				if (insertError || !preview) {
+					throw new Error(
+						`Insert preview failed: ${insertError?.message ?? 'unknown'}`,
+					)
+				}
+
+				return {
+					id: preview.id,
+					sceneId: scene.id,
+					sceneName: scene.name,
+					status: 'processing',
+					imageUrl: null,
+				}
+			} catch (err) {
+				console.error(
+					'[generateEnvironmentPreviews] scene task failed',
+					{ sceneId: scene.id, stage, err },
+				)
+				return insertFailRow(scene.id, scene.name, stage, getErrorMessage(err))
+			}
+		}),
+	)
 
 	return { success: true, data: { previews } }
 }

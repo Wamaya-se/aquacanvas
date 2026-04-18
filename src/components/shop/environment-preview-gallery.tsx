@@ -113,7 +113,19 @@ export function EnvironmentPreviewGallery({
 			return
 		}
 
-		setPreviews(result.data.previews)
+		const { previews: initialPreviews } = result.data
+		const allFailed =
+			initialPreviews.length > 0 &&
+			initialPreviews.every((p) => p.status === 'fail')
+
+		setPreviews(initialPreviews)
+
+		if (allFailed) {
+			setState('error')
+			setError('errors.generationFailed')
+			return
+		}
+
 		startPolling()
 	}, [orderId, guestSessionId, startPolling])
 
@@ -123,7 +135,11 @@ export function EnvironmentPreviewGallery({
 		handleGenerate()
 	}, [testMode, handleGenerate])
 
-	if (state === 'error' && previews.length === 0) {
+	const hasAnyUsablePreview = previews.some(
+		(p) => p.status === 'success' || p.status === 'processing' || p.status === 'pending',
+	)
+
+	if (state === 'error' && !hasAnyUsablePreview) {
 		return (
 			<div className="flex flex-col items-center gap-4 rounded-xl bg-surface-container-high px-6 py-8">
 				<AlertTriangle className="size-8 text-destructive" aria-hidden="true" />

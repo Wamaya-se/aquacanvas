@@ -70,6 +70,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 			fail_msg?: string | null
 			fail_code?: string | null
 			failed_at?: string | null
+			stage?: string | null
 		}
 		return {
 			name: getSceneName(ep.environment_scenes),
@@ -81,6 +82,8 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 			costTimeMs: ep.ai_cost_time_ms,
 			failMsg: metadata.fail_msg ?? null,
 			failCode: metadata.fail_code ?? null,
+			failStage: metadata.stage ?? null,
+			failedAt: metadata.failed_at ?? null,
 		}
 	})
 
@@ -288,7 +291,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 												</Badge>
 											</div>
 										)}
-										{ep.status === 'fail' && (ep.failMsg || ep.failCode || ep.taskId) && (
+										{ep.status === 'fail' && (ep.failMsg || ep.failCode || ep.taskId || ep.failStage) && (
 											<dl className="space-y-1 rounded-lg bg-destructive/5 p-3 text-xs">
 												{ep.failMsg && (
 													<div>
@@ -300,6 +303,16 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 														</dd>
 													</div>
 												)}
+												{ep.failStage && (
+													<div>
+														<dt className="font-sans font-medium text-muted-foreground">
+															{t('previewFailStage')}
+														</dt>
+														<dd className="font-mono text-muted-foreground">
+															{ep.failStage}
+														</dd>
+													</div>
+												)}
 												{ep.failCode && (
 													<div>
 														<dt className="font-sans font-medium text-muted-foreground">
@@ -307,6 +320,16 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 														</dt>
 														<dd className="font-mono text-muted-foreground">
 															{ep.failCode}
+														</dd>
+													</div>
+												)}
+												{ep.failedAt && (
+													<div>
+														<dt className="font-sans font-medium text-muted-foreground">
+															{t('previewFailedAt')}
+														</dt>
+														<dd className="font-mono text-muted-foreground">
+															{new Date(ep.failedAt).toLocaleString('sv-SE')}
 														</dd>
 													</div>
 												)}

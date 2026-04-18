@@ -517,6 +517,8 @@
 		"previewStatusFail": "Failed",
 		"previewFailReason": "Failure reason",
 		"previewFailCode": "Failure code",
+		"previewFailStage": "Failure stage",
+		"previewFailedAt": "Failed at",
 		"allScenes": "All Scenes",
 		"newScene": "New Scene",
 		"editScene": "Edit Scene",
