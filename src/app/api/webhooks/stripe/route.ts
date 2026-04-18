@@ -78,6 +78,9 @@ export async function POST(request: Request) {
 		const formatId = session.metadata?.formatId
 		const formatIdResult = formatId ? z.string().uuid().safeParse(formatId) : null
 
+		const rawLocale = session.metadata?.locale
+		const orderLocale = rawLocale === 'sv' || rawLocale === 'en' ? rawLocale : 'sv'
+
 		const { error: updateError } = await adminDb
 			.from('orders')
 			.update({
@@ -85,6 +88,7 @@ export async function POST(request: Request) {
 				price_cents: session.amount_total,
 				stripe_session_id: session.id,
 				customer_email: customerEmail,
+				locale: orderLocale,
 				...(formatIdResult?.success ? { format_id: formatIdResult.data } : {}),
 			})
 			.eq('id', orderId)
@@ -123,6 +127,7 @@ export async function POST(request: Request) {
 				formatName,
 				priceCents: order.price_cents ?? 0,
 				generatedImageUrl,
+				locale: orderLocale,
 			}
 
 			await Promise.allSettled([

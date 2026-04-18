@@ -12,63 +12,73 @@ import {
 } from '@react-email/components'
 
 interface AdminOrderNotificationEmailProps {
-	orderNumber: string
+	locale: string
+	strings: {
+		preview: string
+		heading: string
+		intro: string
+		labelOrderNumber: string
+		labelCustomer: string
+		labelStyle: string
+		labelFormat: string
+		labelAmount: string
+		guestLabel: string
+		ctaViewOrder: string
+		footer: string
+		orderNumberValue: string
+		priceLabel: string
+	}
 	customerEmail: string | null
 	styleName: string
 	formatName?: string
-	price: string
 	adminUrl: string
 }
 
 export function AdminOrderNotificationEmail({
-	orderNumber,
+	locale,
+	strings,
 	customerEmail,
 	styleName,
 	formatName,
-	price,
 	adminUrl,
 }: AdminOrderNotificationEmailProps) {
 	return (
-		<Html>
+		<Html lang={locale}>
 			<Head />
-			<Preview>New Aquacanvas order #{orderNumber}</Preview>
+			<Preview>{strings.preview}</Preview>
 			<Body style={main}>
 				<Container style={container}>
-					<Heading style={heading}>New Order Received</Heading>
-					<Text style={text}>
-						A new order has been paid and is ready for processing.
-					</Text>
+					<Heading style={heading}>{strings.heading}</Heading>
+					<Text style={text}>{strings.intro}</Text>
 
 					<Section style={orderBox}>
-						<Text style={label}>Order Number</Text>
-						<Text style={value}>#{orderNumber}</Text>
+						<Text style={label}>{strings.labelOrderNumber}</Text>
+						<Text style={value}>{strings.orderNumberValue}</Text>
 
-						<Text style={label}>Customer</Text>
-						<Text style={value}>{customerEmail ?? 'Guest'}</Text>
+						<Text style={label}>{strings.labelCustomer}</Text>
+						<Text style={value}>{customerEmail ?? strings.guestLabel}</Text>
 
-						<Text style={label}>Style</Text>
+						<Text style={label}>{strings.labelStyle}</Text>
 						<Text style={value}>{styleName}</Text>
 
 						{formatName && (
 							<>
-								<Text style={label}>Print Format</Text>
+								<Text style={label}>{strings.labelFormat}</Text>
 								<Text style={value}>{formatName}</Text>
 							</>
 						)}
 
-						<Text style={label}>Amount</Text>
-						<Text style={value}>{price} SEK</Text>
+						<Text style={label}>{strings.labelAmount}</Text>
+						<Text style={value}>{strings.priceLabel}</Text>
 					</Section>
 
 					<Link href={adminUrl} style={buttonStyle}>
-						View Order in Admin
+						{strings.ctaViewOrder}
 					</Link>
 
 					<Hr style={hr} />
 
-					<Text style={footerText}>
-						Aquacanvas Admin Notification
-					</Text>
+					<Text style={footerText}>{strings.footer}</Text>
 				</Container>
 			</Body>
 		</Html>

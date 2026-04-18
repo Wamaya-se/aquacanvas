@@ -12,45 +12,52 @@ import {
 } from '@react-email/components'
 
 interface OrderShippedEmailProps {
-	orderNumber: string
+	locale: string
+	strings: {
+		preview: string
+		heading: string
+		intro: string
+		labelOrderNumber: string
+		labelStyle: string
+		labelTotal: string
+		footerQuestions: string
+		orderNumberValue: string
+		priceLabel: string
+	}
 	styleName: string
-	price: string
 	siteUrl: string
 }
 
 export function OrderShippedEmail({
-	orderNumber,
+	locale,
+	strings,
 	styleName,
-	price,
 	siteUrl,
 }: OrderShippedEmailProps) {
 	return (
-		<Html>
+		<Html lang={locale}>
 			<Head />
-			<Preview>Your Aquacanvas order #{orderNumber} has been shipped!</Preview>
+			<Preview>{strings.preview}</Preview>
 			<Body style={main}>
 				<Container style={container}>
-					<Heading style={heading}>Your Artwork Has Been Shipped!</Heading>
-					<Text style={text}>
-						Great news — your artwork print is on its way! You should receive
-						it within 3–7 business days.
-					</Text>
+					<Heading style={heading}>{strings.heading}</Heading>
+					<Text style={text}>{strings.intro}</Text>
 
 					<Section style={orderBox}>
-						<Text style={label}>Order Number</Text>
-						<Text style={value}>#{orderNumber}</Text>
+						<Text style={label}>{strings.labelOrderNumber}</Text>
+						<Text style={value}>{strings.orderNumberValue}</Text>
 
-						<Text style={label}>Style</Text>
+						<Text style={label}>{strings.labelStyle}</Text>
 						<Text style={value}>{styleName}</Text>
 
-						<Text style={label}>Total</Text>
-						<Text style={value}>{price} SEK</Text>
+						<Text style={label}>{strings.labelTotal}</Text>
+						<Text style={value}>{strings.priceLabel}</Text>
 					</Section>
 
 					<Hr style={hr} />
 
 					<Text style={footerText}>
-						Questions about your delivery? Reply to this email or visit{' '}
+						{strings.footerQuestions}{' '}
 						<Link href={siteUrl} style={link}>
 							aquacanvas.com
 						</Link>

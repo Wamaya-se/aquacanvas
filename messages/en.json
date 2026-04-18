@@ -256,6 +256,50 @@
 		"menuOpen": "Open menu",
 		"menuClose": "Close menu"
 	},
+	"emails": {
+		"orderConfirmation": {
+			"subject": "Order Confirmed — #{orderNumber}",
+			"preview": "Your Aquacanvas order #{orderNumber} is confirmed!",
+			"heading": "Thank You for Your Order!",
+			"intro": "Your artwork has been ordered and we'll start preparing your print right away.",
+			"labelOrderNumber": "Order Number",
+			"labelStyle": "Style",
+			"labelFormat": "Print Format",
+			"labelTotal": "Total",
+			"priceSEK": "{amount} SEK",
+			"altArtwork": "Your artwork",
+			"footerQuestions": "Questions? Reply to this email or visit",
+			"orderNumberValue": "#{orderNumber}"
+		},
+		"orderShipped": {
+			"subject": "Your Order Has Shipped — #{orderNumber}",
+			"preview": "Your Aquacanvas order #{orderNumber} has been shipped!",
+			"heading": "Your Artwork Has Been Shipped!",
+			"intro": "Great news — your artwork print is on its way! You should receive it within 3–7 business days.",
+			"labelOrderNumber": "Order Number",
+			"labelStyle": "Style",
+			"labelTotal": "Total",
+			"priceSEK": "{amount} SEK",
+			"footerQuestions": "Questions about your delivery? Reply to this email or visit",
+			"orderNumberValue": "#{orderNumber}"
+		},
+		"adminOrderNotification": {
+			"subject": "New Order — #{orderNumber}",
+			"preview": "New Aquacanvas order #{orderNumber}",
+			"heading": "New Order Received",
+			"intro": "A new order has been paid and is ready for processing.",
+			"labelOrderNumber": "Order Number",
+			"labelCustomer": "Customer",
+			"labelStyle": "Style",
+			"labelFormat": "Print Format",
+			"labelAmount": "Amount",
+			"priceSEK": "{amount} SEK",
+			"guestLabel": "Guest",
+			"ctaViewOrder": "View Order in Admin",
+			"footer": "Aquacanvas Admin Notification",
+			"orderNumberValue": "#{orderNumber}"
+		}
+	},
 	"checkout": {
 		"orderSummary": "Order Summary",
 		"proceedToPayment": "Proceed to payment",

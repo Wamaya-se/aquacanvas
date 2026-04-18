@@ -8,9 +8,20 @@ async function loadMessages(locale: Locale) {
 }
 
 export default getRequestConfig(async ({ requestLocale }) => {
+	// Honor explicit locale first — this is what `getTranslations({ locale })`
+	// uses to force a specific language (e.g. from admin actions or webhooks
+	// when rendering localized emails for a customer's saved locale).
+	const requested = await requestLocale
+	if (hasLocale(routing.locales, requested)) {
+		return {
+			locale: requested,
+			messages: await loadMessages(requested),
+		}
+	}
+
+	// Admin UI is English-only.
 	const headerList = await headers()
 	const pathname = headerList.get('x-pathname') ?? ''
-
 	if (pathname.startsWith('/admin')) {
 		return {
 			locale: 'en' satisfies Locale,
@@ -18,13 +29,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
 		}
 	}
 
-	const requested = await requestLocale
-	const locale = hasLocale(routing.locales, requested)
-		? requested
-		: routing.defaultLocale
-
 	return {
-		locale,
-		messages: await loadMessages(locale),
+		locale: routing.defaultLocale,
+		messages: await loadMessages(routing.defaultLocale),
 	}
 })

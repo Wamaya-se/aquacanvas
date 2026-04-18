@@ -47,7 +47,7 @@ export async function updateOrderStatus(
 		try {
 			const { data: order } = await supabase
 				.from('orders')
-				.select('id, customer_email, price_cents, styles(name)')
+				.select('id, customer_email, price_cents, locale, styles(name)')
 				.eq('id', parsed.data.orderId)
 				.single()
 
@@ -59,6 +59,7 @@ export async function updateOrderStatus(
 					customerEmail: order.customer_email,
 					styleName,
 					priceCents: order.price_cents ?? 0,
+					locale: order.locale,
 				})
 			}
 		} catch (err) {

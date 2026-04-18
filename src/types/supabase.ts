@@ -209,6 +209,7 @@ export type Database = {
           generated_image_path: string | null
           guest_session_id: string | null
           id: string
+          locale: string
           orientation: string | null
           original_image_path: string | null
           price_cents: number | null
@@ -230,6 +231,7 @@ export type Database = {
           generated_image_path?: string | null
           guest_session_id?: string | null
           id?: string
+          locale?: string
           orientation?: string | null
           original_image_path?: string | null
           price_cents?: number | null
@@ -251,6 +253,7 @@ export type Database = {
           generated_image_path?: string | null
           guest_session_id?: string | null
           id?: string
+          locale?: string
           orientation?: string | null
           original_image_path?: string | null
           price_cents?: number | null

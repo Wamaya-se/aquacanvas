@@ -255,6 +255,8 @@ export async function simulatePurchase(
 	const stylePriceCents = styleResult.data?.price_cents ?? 34900
 	const formatPriceCents = format?.price_cents ?? 0
 	const totalPriceCents = stylePriceCents + formatPriceCents
+	const currentLocale = await getLocale()
+	const orderLocale = currentLocale === 'en' ? 'en' : 'sv'
 
 	const { error: updateError } = await adminDb
 		.from('orders')
@@ -263,6 +265,7 @@ export async function simulatePurchase(
 			price_cents: totalPriceCents,
 			format_id: format?.id ?? null,
 			stripe_session_id: `sim_dev_${Date.now()}`,
+			locale: orderLocale,
 		})
 		.eq('id', order.id)
 

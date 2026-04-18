@@ -256,6 +256,50 @@
 		"menuOpen": "Öppna meny",
 		"menuClose": "Stäng meny"
 	},
+	"emails": {
+		"orderConfirmation": {
+			"subject": "Orderbekräftelse — #{orderNumber}",
+			"preview": "Din Aquacanvas-beställning #{orderNumber} är bekräftad!",
+			"heading": "Tack för din beställning!",
+			"intro": "Din tavla är beställd och vi börjar förbereda ditt tryck direkt.",
+			"labelOrderNumber": "Ordernummer",
+			"labelStyle": "Stil",
+			"labelFormat": "Tryckformat",
+			"labelTotal": "Totalt",
+			"priceSEK": "{amount} kr",
+			"altArtwork": "Din tavla",
+			"footerQuestions": "Frågor? Svara på detta mejl eller besök",
+			"orderNumberValue": "#{orderNumber}"
+		},
+		"orderShipped": {
+			"subject": "Din beställning har skickats — #{orderNumber}",
+			"preview": "Din Aquacanvas-beställning #{orderNumber} har skickats!",
+			"heading": "Din tavla är på väg!",
+			"intro": "Goda nyheter — din tavla är på väg! Du bör få den inom 3–7 arbetsdagar.",
+			"labelOrderNumber": "Ordernummer",
+			"labelStyle": "Stil",
+			"labelTotal": "Totalt",
+			"priceSEK": "{amount} kr",
+			"footerQuestions": "Frågor om leveransen? Svara på detta mejl eller besök",
+			"orderNumberValue": "#{orderNumber}"
+		},
+		"adminOrderNotification": {
+			"subject": "Ny beställning — #{orderNumber}",
+			"preview": "Ny Aquacanvas-beställning #{orderNumber}",
+			"heading": "Ny beställning mottagen",
+			"intro": "En ny beställning har betalats och är redo att bearbetas.",
+			"labelOrderNumber": "Ordernummer",
+			"labelCustomer": "Kund",
+			"labelStyle": "Stil",
+			"labelFormat": "Tryckformat",
+			"labelAmount": "Belopp",
+			"priceSEK": "{amount} kr",
+			"guestLabel": "Gäst",
+			"ctaViewOrder": "Visa beställning i admin",
+			"footer": "Aquacanvas admin-notis",
+			"orderNumberValue": "#{orderNumber}"
+		}
+	},
 	"checkout": {
 		"orderSummary": "Ordersammanställning",
 		"proceedToPayment": "Gå till betalning",

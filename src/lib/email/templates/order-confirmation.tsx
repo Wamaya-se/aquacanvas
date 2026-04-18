@@ -13,57 +13,66 @@ import {
 } from '@react-email/components'
 
 interface OrderConfirmationEmailProps {
-	orderNumber: string
+	locale: string
+	strings: {
+		preview: string
+		heading: string
+		intro: string
+		labelOrderNumber: string
+		labelStyle: string
+		labelFormat: string
+		labelTotal: string
+		altArtwork: string
+		footerQuestions: string
+		orderNumberValue: string
+		priceLabel: string
+	}
 	styleName: string
 	formatName?: string
-	price: string
 	generatedImageUrl?: string | null
 	siteUrl: string
 }
 
 export function OrderConfirmationEmail({
-	orderNumber,
+	locale,
+	strings,
 	styleName,
 	formatName,
-	price,
 	generatedImageUrl,
 	siteUrl,
 }: OrderConfirmationEmailProps) {
 	return (
-		<Html>
+		<Html lang={locale}>
 			<Head />
-			<Preview>Your Aquacanvas order #{orderNumber} is confirmed!</Preview>
+			<Preview>{strings.preview}</Preview>
 			<Body style={main}>
 				<Container style={container}>
-					<Heading style={heading}>Thank You for Your Order!</Heading>
-					<Text style={text}>
-						Your artwork has been ordered and we&apos;ll start preparing your
-						print right away.
-					</Text>
+					<Heading style={heading}>{strings.heading}</Heading>
+					<Text style={text}>{strings.intro}</Text>
 
 					<Section style={orderBox}>
-						<Text style={label}>Order Number</Text>
-						<Text style={value}>#{orderNumber}</Text>
+						<Text style={label}>{strings.labelOrderNumber}</Text>
+						<Text style={value}>{strings.orderNumberValue}</Text>
 
-						<Text style={label}>Style</Text>
+						<Text style={label}>{strings.labelStyle}</Text>
 						<Text style={value}>{styleName}</Text>
 
 						{formatName && (
 							<>
-								<Text style={label}>Print Format</Text>
+								<Text style={label}>{strings.labelFormat}</Text>
 								<Text style={value}>{formatName}</Text>
 							</>
 						)}
 
-						<Text style={label}>Total</Text>
-						<Text style={value}>{price} SEK</Text>
+						<Text style={label}>{strings.labelTotal}</Text>
+						<Text style={value}>{strings.priceLabel}</Text>
 					</Section>
 
 					{generatedImageUrl && (
 						<Section style={{ textAlign: 'center' as const, marginBottom: '24px' }}>
 							<Img
 								src={generatedImageUrl}
-								alt="Your artwork"
+								alt={strings.altArtwork}
 								width={400}
 								style={{ borderRadius: '8px', maxWidth: '100%' }}
 							/>
@@ -73,7 +82,7 @@ export function OrderConfirmationEmail({
 					<Hr style={hr} />
 
 					<Text style={footerText}>
-						Questions? Reply to this email or visit{' '}
+						{strings.footerQuestions}{' '}
 						<Link href={siteUrl} style={link}>
 							aquacanvas.com
 						</Link>

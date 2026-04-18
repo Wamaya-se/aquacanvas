@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-17 (i18n kvalitetskontroll — Stripe-locale, OAuth-callback path, error-boundaries, Batch 3 ~klar) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-18 (email-templates tvåspråkiga — locale-kolumn på orders, getTranslations-baserade templates) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** i18n fullt utrullat och kvalitetsgranskat (sv default, en på `/en/*`, Stripe-locale, error-boundaries, Audit Batch 3 ~klar). Kvar i Fas 13: email-templates på svenska + övriga tillväxt/konverterings-items (email capture, reviews, abandoned cart).
+**Nästa upp:** Email-templates är nu tvåspråkiga (sv/en) och styrs av `orders.locale` satt vid betalning. Kvar i Fas 13: tillväxt/konverterings-items (email capture innan generering, reviews, abandoned cart, newsletter, delning).
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
 
@@ -312,7 +312,7 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 ### Tillväxt & konvertering
 
 - [x] **Svenska översättning** (`messages/sv.json`) + `hreflang`-implementation — path-based routing (sv default på `/`, en på `/en/*`), `next-intl` middleware komponerad med Supabase session-refresh, admin förblir engelska, locale switcher i header, `buildMetadata` + `sitemap.ts` genererar `hreflang` automatiskt. `NextIntlClientProvider` flyttad till `[locale]/layout.tsx` så switcher fungerar stabilt över navigering. Stripe checkout använder `getLocale()` för UI-språk, `success_url`/`cancel_url` och produktnamn; locale skickas med i session-metadata för senare email-flöden. OAuth callback-URL bygger rätt path via `getPathname`. Alla error-boundaries återställer via `common.tryAgain`; root `error.tsx` använder statisk tvåspråkig fallback för att undvika provider-krasch. (2026-04-17)
-- [ ] **Email-templates på svenska** — `order-confirmation`, `order-shipped`, `admin-order-notification` är hårdkodade på engelska. Lägg till `locale`-kolumn på `orders`, läs från Stripe metadata i webhook, översätt templates via `getTranslations` med explicit locale.
+- [x] **Email-templates på svenska** — Migration 00015 tillade `locale`-kolumn på `orders` (default `'sv'`, check `('sv','en')`). Webhook läser `locale` från Stripe session-metadata och sparar på order. Templates (`order-confirmation`, `order-shipped`, `admin-order-notification`) refaktorerade till rena string-prop-komponenter; `send.ts` pre-resolvar via `getTranslations({ locale, namespace: 'emails.*' })`. `admin-orders.ts` läser `locale` från order vid shipped-mejl. `i18n/request.ts` uppdaterad att respektera explicit `requestLocale` först (så admin-actions och webhook kan rendera annan locale än `/admin`-default `'en'`). Nya översättningsnycklar i `emails.*`-namespace i både `sv.json` och `en.json`. (2026-04-18)
 - [ ] E-post-capture innan generering (för abandoned cart + lead gen)
 - [ ] Abandoned cart e-post-sekvens (Resend + cron / Supabase Edge Function)
 - [ ] Kundrecensioner/betyg på produktsidor (social proof + SEO)
@@ -365,7 +365,7 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ## DB Schema Status
 
-Tables: profiles, styles (+ price_cents), products (+ faq JSONB), discount_codes, print_formats (canvas sizes + orientation), orders (+ product_id, customer_email, ai_model, ai_cost_time_ms, ai_task_id, discount_code_id, format_id, orientation), generated_images, environment_scenes (name, image_path, is_active, sort_order), environment_previews (order_id, scene_id, image_path, ai_task_id, status, metadata)
+Tables: profiles, styles (+ price_cents), products (+ faq JSONB), discount_codes, print_formats (canvas sizes + orientation), orders (+ product_id, customer_email, ai_model, ai_cost_time_ms, ai_task_id, discount_code_id, format_id, orientation, locale), generated_images, environment_scenes (name, image_path, is_active, sort_order), environment_previews (order_id, scene_id, image_path, ai_task_id, status, metadata)
 Enums: order_status (created/processing/generated/paid/shipped), user_role (customer/admin), preview_status (pending/processing/success/fail)
 Functions: is_admin(), handle_updated_at(), handle_new_user()
 Storage: `images` bucket (10 MB limit, jpeg/png/webp) + `products/` folder for product images
