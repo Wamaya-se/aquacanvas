@@ -36,13 +36,13 @@ async function uploadSceneImage(
 ): Promise<string> {
 	const adminDb = createAdminClient()
 	const ext = file.type === 'image/jpeg' ? 'jpeg' : file.type.split('/')[1]
-	const storagePath = `environment-scenes/${sceneId}.${ext}`
+	const storagePath = `environment-scenes/${sceneId}-${Date.now()}.${ext}`
 
 	const { error } = await adminDb.storage
 		.from('images')
 		.upload(storagePath, file, {
 			contentType: file.type,
-			upsert: true,
+			upsert: false,
 		})
 
 	if (error) {
@@ -166,10 +166,25 @@ export async function updateScene(
 			}
 		}
 
+		const { data: existingScene } = await adminDb
+			.from('environment_scenes')
+			.select('image_path')
+			.eq('id', idParsed.data)
+			.single()
+
 		try {
 			imagePath = await uploadSceneImage(file, idParsed.data)
 		} catch {
 			return { success: false, error: 'errors.uploadFailed' }
+		}
+
+		if (existingScene?.image_path && existingScene.image_path !== imagePath) {
+			await adminDb.storage
+				.from('images')
+				.remove([existingScene.image_path])
+				.catch(() => {
+					// Non-critical — old file stays as orphan if cleanup fails
+				})
 		}
 	} else if (imageRemoved) {
 		return {

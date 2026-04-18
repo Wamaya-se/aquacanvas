@@ -2,9 +2,11 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
+import { ArrowDown } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { BeforeAfterSlider } from '@/components/shared/before-after-slider'
 import { CreateFlow } from '@/components/shop/create-flow'
+import { Button } from '@/components/ui/button'
 import type { StyleOption } from '@/components/shop/style-picker'
 import type { FormatOption } from '@/components/shop/format-picker'
 import { ReviewsSection } from '@/components/shop/reviews-section'
@@ -189,62 +191,113 @@ export default async function ProductPage({ params }: ProductPageProps) {
 				/>
 			)}
 
-			<section className="relative overflow-hidden bg-gradient-to-b from-hero-gradient-start via-hero-gradient-mid to-hero-gradient-end px-6 py-20 lg:py-32">
-				<div className="mx-auto max-w-5xl text-center">
-					<h1 className="mb-6 font-heading text-4xl font-bold tracking-[-0.03em] text-foreground sm:text-5xl lg:text-6xl">
-						{product.headline}
-					</h1>
-
-					{product.description && (
-						<p className="mx-auto mb-8 max-w-2xl font-sans text-base leading-[1.7] text-muted-foreground sm:text-lg">
-							{product.description}
-						</p>
-					)}
-
-					<p className="font-sans text-sm text-muted-foreground">
-						{t('startFrom', { price: priceFormatted })}
-					</p>
-
-					{style && (
-						<p className="mt-2 font-sans text-xs text-muted-foreground">
-							{t('poweredBy', { style: style.name })}
-						</p>
-					)}
-
-					{product.hero_image_url && (
-						<div className="relative mx-auto mt-12 aspect-[16/9] max-w-3xl overflow-hidden rounded-xl" style={{ boxShadow: '0 8px 40px oklch(0.2 0.02 260 / 0.06)' }}>
+			<section className="relative overflow-hidden">
+				{product.hero_image_url ? (
+					<>
+						<div className="absolute inset-0 scale-110">
 							<Image
 								src={product.hero_image_url}
-								alt={tAlt('productHero', { name: product.name })}
+								alt=""
 								fill
-								sizes="(max-width: 768px) 100vw, 768px"
-								className="object-cover"
+								sizes="100vw"
+								className="object-cover blur-1xl"
 								unoptimized
 								priority
+								aria-hidden="true"
 							/>
 						</div>
-					)}
+						<div
+							className="absolute inset-0 bg-gradient-to-b from-surface/50 via-surface/40 to-surface/60"
+							aria-hidden="true"
+						/>
+					</>
+				) : (
+					<div
+						className="absolute inset-0 bg-gradient-to-b from-hero-gradient-start via-hero-gradient-mid to-hero-gradient-end"
+						aria-hidden="true"
+					/>
+				)}
+
+				<div className="relative mx-auto max-w-6xl px-6 py-12 lg:py-20">
+					<div className="flex flex-col gap-10 md:flex-row md:items-center md:gap-12 lg:gap-16">
+						{(product.example_before && product.example_after) || product.hero_image_url ? (
+							<div className="w-full md:order-2 md:flex-1">
+								{product.example_before && product.example_after ? (
+									<BeforeAfterSlider
+										beforeSrc={product.example_before}
+										afterSrc={product.example_after}
+										beforeAlt={tAlt('productOriginal', { name: product.name })}
+										afterAlt={tAlt('productArtwork', { name: product.name })}
+										beforeLabel={tHero('beforeLabel')}
+										afterLabel={tHero('afterLabel')}
+										sliderAriaLabel={tHero('sliderAriaLabel')}
+									/>
+								) : product.hero_image_url ? (
+									<div
+										className="relative aspect-[16/9] w-full overflow-hidden rounded-xl"
+										style={{ boxShadow: '0 8px 40px oklch(0.2 0.02 260 / 0.06)' }}
+									>
+										<Image
+											src={product.hero_image_url}
+											alt={tAlt('productHero', { name: product.name })}
+											fill
+											sizes="(max-width: 768px) 100vw, 768px"
+											className="object-cover"
+											unoptimized
+											priority
+										/>
+									</div>
+								) : null}
+							</div>
+						) : null}
+
+						<div className="flex w-full flex-col items-center text-center md:order-1 md:max-w-xl md:shrink-0 md:basis-[360px] md:items-start md:text-left lg:basis-[440px]">
+							<h1 className="font-heading text-4xl font-bold tracking-[-0.03em] text-foreground sm:text-5xl lg:text-6xl">
+								{product.headline}
+							</h1>
+
+							{product.description && (
+								<p className="mt-6 font-sans text-base leading-[1.7] text-muted-foreground sm:text-lg">
+									{product.description}
+								</p>
+							)}
+
+							<div className="mt-6 flex flex-col gap-1">
+								<p className="font-sans text-sm text-muted-foreground">
+									{t('startFrom', { price: priceFormatted })}
+								</p>
+								{style && (
+									<p className="font-sans text-xs text-muted-foreground">
+										{t('poweredBy', { style: style.name })}
+									</p>
+								)}
+							</div>
+
+							{style && (
+								<div className="mt-8">
+									<Button variant="brand" size="lg" asChild>
+										<a href="#create-flow">
+											{t('cta')}
+											<ArrowDown className="ml-2 size-4" aria-hidden="true" />
+										</a>
+									</Button>
+								</div>
+							)}
+						</div>
+					</div>
 				</div>
 			</section>
 
-			{product.example_before && product.example_after && (
-				<section className="bg-surface-container-low px-6 py-16 lg:py-24">
+			{style && (
+				<section id="create-flow" className="scroll-mt-20 bg-surface px-6 py-12 lg:py-20">
 					<div className="mx-auto max-w-3xl">
-						<BeforeAfterSlider
-							beforeSrc={product.example_before}
-							afterSrc={product.example_after}
-							beforeAlt={tAlt('productOriginal', { name: product.name })}
-							afterAlt={tAlt('productArtwork', { name: product.name })}
-							beforeLabel={tHero('beforeLabel')}
-							afterLabel={tHero('afterLabel')}
-							sliderAriaLabel={tHero('sliderAriaLabel')}
-						/>
+						<CreateFlow styles={styles} formats={formats} lockedStyleId={style.id} />
 					</div>
 				</section>
 			)}
 
 			{product.body && (
-				<section className="bg-surface px-6 py-16 lg:py-24">
+				<section className="bg-surface-container-low px-6 py-12 lg:py-20">
 					<div className="prose prose-invert mx-auto max-w-2xl font-sans text-base leading-[1.7] text-muted-foreground">
 						{product.body.split('\n\n').map((paragraph, i) => (
 							<p key={i}>{paragraph}</p>
@@ -254,7 +307,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
 			)}
 
 			{faq.length > 0 && (
-				<section className="bg-surface-container-low px-6 py-16 lg:py-24">
+				<section className="bg-surface px-6 py-12 lg:py-20">
 					<div className="mx-auto max-w-2xl">
 						<h2 className="mb-10 text-center font-heading text-2xl font-bold tracking-[-0.03em] text-foreground sm:text-3xl">
 							{t('faqHeading')}
@@ -277,20 +330,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
 								</details>
 							))}
 						</div>
-					</div>
-				</section>
-			)}
-
-			{style && (
-				<section className="bg-surface px-6 py-16 lg:py-24">
-					<div className="mx-auto max-w-3xl">
-						<h2 className="mb-3 text-center font-heading text-2xl font-bold tracking-[-0.03em] text-foreground sm:text-3xl">
-							{t('createSection')}
-						</h2>
-						<p className="mb-10 text-center font-sans text-base leading-[1.7] text-muted-foreground">
-							{t('createDescription')}
-						</p>
-						<CreateFlow styles={styles} formats={formats} lockedStyleId={style.id} />
 					</div>
 				</section>
 			)}

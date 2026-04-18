@@ -57,13 +57,13 @@ async function uploadImageField(
 	}
 
 	const ext = getExtension(file.type)
-	const path = `products/${productId}/${fieldName}.${ext}`
+	const path = `products/${productId}/${fieldName}-${Date.now()}.${ext}`
 
 	const { error: uploadError } = await supabase.storage
 		.from('images')
 		.upload(path, file, {
 			contentType: file.type,
-			upsert: true,
+			upsert: false,
 		})
 
 	if (uploadError) {
