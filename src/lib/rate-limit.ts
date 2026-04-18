@@ -26,6 +26,7 @@ export const RATE_LIMITS = {
 	login: { name: 'login', maxRequests: 10, window: '15 m' },
 	register: { name: 'register', maxRequests: 5, window: '1 h' },
 	contact: { name: 'contact', maxRequests: 5, window: '1 h' },
+	reviewSubmit: { name: 'review:submit', maxRequests: 3, window: '1 h' },
 } as const satisfies Record<string, RateLimitBucket>
 
 export type RateLimitKey = keyof typeof RATE_LIMITS

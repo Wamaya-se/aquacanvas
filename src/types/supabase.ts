@@ -436,6 +436,66 @@ export type Database = {
           },
         ]
       }
+      product_reviews: {
+        Row: {
+          body: string
+          created_at: string
+          customer_email: string
+          customer_name: string
+          id: string
+          locale: string
+          order_id: string | null
+          product_id: string
+          rating: number
+          status: Database["public"]["Enums"]["review_status"]
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          id?: string
+          locale?: string
+          order_id?: string | null
+          product_id: string
+          rating: number
+          status?: Database["public"]["Enums"]["review_status"]
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          id?: string
+          locale?: string
+          order_id?: string | null
+          product_id?: string
+          rating?: number
+          status?: Database["public"]["Enums"]["review_status"]
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -522,6 +582,7 @@ export type Database = {
     Enums: {
       order_status: "created" | "processing" | "generated" | "paid" | "shipped"
       preview_status: "pending" | "processing" | "success" | "fail"
+      review_status: "pending" | "approved" | "rejected"
       user_role: "customer" | "admin"
     }
     CompositeTypes: {

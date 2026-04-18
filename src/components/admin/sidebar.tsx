@@ -16,6 +16,7 @@ import {
 	Tag,
 	Frame,
 	Image,
+	Star,
 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -35,6 +36,7 @@ const navItems = [
 	{ href: '/admin/styles', icon: Palette, labelKey: 'styles' as const, exact: false },
 	{ href: '/admin/formats', icon: Frame, labelKey: 'formats' as const, exact: false },
 	{ href: '/admin/scenes', icon: Image, labelKey: 'scenes' as const, exact: false },
+	{ href: '/admin/reviews', icon: Star, labelKey: 'reviews' as const, exact: false },
 	{ href: '/admin/discounts', icon: Tag, labelKey: 'discounts' as const, exact: false },
 	{ href: '/admin/settings', icon: Settings, labelKey: 'settings' as const, exact: false },
 ]

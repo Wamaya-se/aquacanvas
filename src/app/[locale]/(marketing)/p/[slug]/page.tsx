@@ -7,6 +7,7 @@ import { BeforeAfterSlider } from '@/components/shared/before-after-slider'
 import { CreateFlow } from '@/components/shop/create-flow'
 import type { StyleOption } from '@/components/shop/style-picker'
 import type { FormatOption } from '@/components/shop/format-picker'
+import { ReviewsSection } from '@/components/shop/reviews-section'
 import { getSiteUrl } from '@/lib/env'
 import { buildMetadata } from '@/lib/metadata'
 import { parseOrientation, parseFaq } from '@/lib/db-helpers'
@@ -102,6 +103,19 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
 	const faq = parseFaq(product.faq)
 
+	const supabaseReviews = await createClient()
+	const { data: ratingRows } = await supabaseReviews
+		.from('product_reviews')
+		.select('rating')
+		.eq('product_id', product.id)
+		.eq('status', 'approved')
+
+	const reviewCount = ratingRows?.length ?? 0
+	const reviewAverage =
+		reviewCount > 0
+			? (ratingRows ?? []).reduce((sum, r) => sum + r.rating, 0) / reviewCount
+			: 0
+
 	const siteUrl = getSiteUrl()
 	const breadcrumbJsonLd = {
 		'@context': 'https://schema.org',
@@ -134,6 +148,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
 			priceCurrency: 'SEK',
 			availability: 'https://schema.org/InStock',
 		},
+		...(reviewCount > 0 && {
+			aggregateRating: {
+				'@type': 'AggregateRating',
+				ratingValue: reviewAverage.toFixed(1),
+				reviewCount,
+				bestRating: '5',
+				worstRating: '1',
+			},
+		}),
 	}
 
 	const faqJsonLd = faq.length > 0 ? {
@@ -271,6 +294,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
 					</div>
 				</section>
 			)}
+
+			<ReviewsSection productId={product.id} />
 		</>
 	)
 }
