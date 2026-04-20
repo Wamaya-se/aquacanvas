@@ -85,11 +85,18 @@ function getHeaders(): Record<string, string> {
 }
 
 export async function uploadFileToKie(
-	fileBuffer: ArrayBuffer,
+	fileBuffer: ArrayBuffer | Buffer | Uint8Array,
 	contentType: string,
 	fileName: string,
 ): Promise<string> {
-	const base64 = Buffer.from(fileBuffer).toString('base64')
+	// Buffer.from has separate overloads for ArrayBuffer vs. ArrayLike<number>,
+	// which the unioned input collapses. Normalize to Uint8Array up front so
+	// the call site has a single, deterministic type.
+	const bytes =
+		fileBuffer instanceof ArrayBuffer
+			? new Uint8Array(fileBuffer)
+			: fileBuffer
+	const base64 = Buffer.from(bytes).toString('base64')
 	const dataUrl = `data:${contentType};base64,${base64}`
 
 	const res = await fetch(KIE_FILE_UPLOAD_URL, {

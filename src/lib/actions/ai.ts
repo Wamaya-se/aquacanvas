@@ -1,15 +1,22 @@
 'use server'
 
+import { after } from 'next/server'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createImageTask, getTaskStatus, uploadFileToKie } from '@/lib/ai'
+import { normalizeInput } from '@/lib/image-processing'
 import { generateArtworkSchema, checkStatusSchema, guestSessionIdSchema, validateFile } from '@/validators/order'
 import type { OrientationValue } from '@/validators/order'
 import { checkRateLimit } from '@/lib/rate-limit'
-import { getRateLimitBypassEnabled } from '@/lib/actions/admin-settings'
+import {
+	getRateLimitBypassEnabled,
+	getUpscaleTrigger,
+} from '@/lib/actions/admin-settings'
+import { triggerUpscaleInternal } from '@/lib/print-pipeline/trigger-upscale'
 import { captureServerError } from '@/lib/observability'
 import type { ActionResult } from '@/types/actions'
+import type { UpscaleStatus } from '@/types/supabase'
 import type { KieTaskState, AspectRatio } from '@/lib/ai'
 
 const ORIENTATION_TO_ASPECT_RATIO: Record<OrientationValue, AspectRatio> = {
@@ -122,14 +129,32 @@ export async function generateArtwork(
 		return { success: false, error: 'errors.orderCreationFailed' }
 	}
 
+	// Normalize the upload before it enters AI + Storage so the rest of the
+	// pipeline works on a deterministic JPEG (EXIF-rotated, sRGB, capped to a
+	// sane max dimension, metadata stripped). This keeps storage paths, Kie
+	// uploads and downstream Topaz processing uniform regardless of source.
+	let normalizedBuffer: Buffer
+	try {
+		const rawBuffer = await file.arrayBuffer()
+		const normalized = await normalizeInput(rawBuffer)
+		normalizedBuffer = normalized.buffer
+	} catch (err) {
+		console.error('[generateArtwork] normalizeInput', err)
+		await captureServerError(err, {
+			action: 'generateArtwork',
+			stage: 'normalize_input',
+			orderId: order.id,
+		})
+		return { success: false, error: 'errors.uploadFailed' }
+	}
+
 	const storagePrefix = user ? user.id : 'guest'
-	const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1]
-	const storagePath = `${storagePrefix}/originals/${order.id}.${ext}`
+	const storagePath = `${storagePrefix}/originals/${order.id}.jpg`
 
 	const { error: uploadError } = await adminDb.storage
 		.from('images')
-		.upload(storagePath, file, {
-			contentType: file.type,
+		.upload(storagePath, normalizedBuffer, {
+			contentType: 'image/jpeg',
 			upsert: false,
 		})
 
@@ -145,8 +170,11 @@ export async function generateArtwork(
 
 	let taskId: string
 	try {
-		const fileBuffer = await file.arrayBuffer()
-		const kieImageUrl = await uploadFileToKie(fileBuffer, file.type, file.name)
+		const kieImageUrl = await uploadFileToKie(
+			normalizedBuffer,
+			'image/jpeg',
+			`${order.id}.jpg`,
+		)
 		const result = await createImageTask(kieImageUrl, style.prompt_template, {
 			imageSize: imageSize,
 		})
@@ -280,12 +308,21 @@ export async function checkGenerationStatus(
 				return { success: false, error: 'errors.uploadFailed' }
 			}
 
+			// Pipeline policy: ask app_settings whether upscaling should run
+			// right after generation or wait until checkout. Seeding `pending`
+			// makes the Stripe webhook's follow-up check trivial (status check
+			// instead of flag lookup), and `processing` is set by
+			// `triggerUpscaleInternal` itself when post_generation is active.
+			const trigger = await getUpscaleTrigger()
+			const initialUpscaleStatus: UpscaleStatus = 'pending'
+
 			await adminDb
 				.from('orders')
 				.update({
 					status: 'generated',
 					generated_image_path: generatedPath,
 					ai_cost_time_ms: status.costTime,
+					upscale_status: initialUpscaleStatus,
 				})
 				.eq('id', order.id)
 
@@ -293,6 +330,33 @@ export async function checkGenerationStatus(
 				.from('generated_images')
 				.update({ image_path: generatedPath })
 				.eq('order_id', order.id)
+
+			// Fire-and-forget: upscale should never block the customer flow.
+			// `after()` defers work until the response has been flushed, so
+			// a slow Kie createTask call can't delay the status response.
+			if (trigger === 'post_generation') {
+				after(async () => {
+					try {
+						const res = await triggerUpscaleInternal(order.id)
+						if (!res.success) {
+							console.error(
+								`[checkGenerationStatus] post_generation upscale failed for ${order.id}:`,
+								res.error,
+							)
+						}
+					} catch (err) {
+						console.error(
+							'[checkGenerationStatus] post_generation trigger',
+							err,
+						)
+						await captureServerError(err, {
+							action: 'checkGenerationStatus',
+							stage: 'post_generation_upscale_trigger',
+							orderId: order.id,
+						})
+					}
+				})
+			}
 
 			const {
 				data: { publicUrl },

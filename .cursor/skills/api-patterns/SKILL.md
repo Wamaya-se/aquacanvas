@@ -160,6 +160,40 @@ async function requireAdmin() {
 }
 ```
 
+### `'use server'` + unguarded helpers — NEVER mix
+
+**Rule:** Every exported async function in a `'use server'` file is auto-exposed
+as an RPC endpoint the browser can invoke. Do NOT put unguarded helpers (e.g.
+"called from webhook after signature check", "called from auth'd action") in
+the same file as `'use server'` actions.
+
+**Pattern:** Split internal helpers into a dedicated `server-only` module.
+
+```tsx
+// src/lib/print-pipeline/trigger-upscale.ts
+import 'server-only'
+
+export async function triggerUpscaleInternal(orderId: string) {
+  // No auth check — callers must authorize.
+  // Cannot be invoked from the browser because this module lacks `'use server'`
+  // AND carries `server-only` so it errors at build time if a client tree
+  // ever imports it.
+}
+
+// src/lib/actions/upscale.ts
+'use server'
+import { triggerUpscaleInternal } from '@/lib/print-pipeline/trigger-upscale'
+
+// Admin-guarded wrapper — the only RPC-exposed path.
+export async function triggerUpscale(orderId: string) {
+  await requireAdmin()
+  return triggerUpscaleInternal(orderId)
+}
+
+// Route handlers / other server actions import triggerUpscaleInternal
+// directly — they have their own authorization context.
+```
+
 ---
 
 ## 2. Route Handlers

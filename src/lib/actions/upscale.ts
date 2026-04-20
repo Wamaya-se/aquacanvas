@@ -4,34 +4,20 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import {
-	createUpscaleTask,
-	getTaskStatus,
-	type UpscaleFactor,
-} from '@/lib/ai'
+import { getTaskStatus } from '@/lib/ai'
 import {
 	convertToAdobeRgb,
 	computePrintDpi,
 } from '@/lib/image-processing'
-import {
-	checkUpscaleStatusSchema,
-	triggerUpscaleSchema,
-} from '@/validators/admin'
+import { checkUpscaleStatusSchema } from '@/validators/admin'
 import { captureServerError } from '@/lib/observability'
+import {
+	triggerUpscaleInternal,
+	type TriggerUpscaleData,
+} from '@/lib/print-pipeline/trigger-upscale'
 import type { ActionResult } from '@/types/actions'
 import type { UpscaleStatus } from '@/types/supabase'
 import type { KieTaskState } from '@/lib/ai'
-
-/**
- * Always 4x for now — keeps cost / quality modelling simple.
- * Future Batch E work may tune per-format based on `requiredLongestPx`.
- */
-const DEFAULT_UPSCALE_FACTOR: UpscaleFactor = '4'
-
-export interface TriggerUpscaleData {
-	orderId: string
-	taskId: string
-}
 
 export interface UpscaleStatusData {
 	state: KieTaskState
@@ -63,110 +49,18 @@ function getStoragePrefix(order: { user_id: string | null }): string {
 }
 
 /**
- * Kick off a Topaz upscale job for an order's existing `generated_image_path`.
- *
- * Preconditions:
- * - Order exists and has a non-null `generated_image_path`.
- * - Order is not already in `processing` or `success` for upscale (idempotent
- *   guard — admin can reset via `upscale_status = 'fail'` or `null`).
- *
- * Side effects:
- * - Writes `upscale_task_id` and `upscale_status = 'processing'` on the order.
- * - Revalidates admin orders path.
+ * Admin-guarded wrapper around `triggerUpscaleInternal` for manual retries
+ * from the admin order detail UI. All callers that are NOT the admin UI
+ * (Stripe webhook, post-generation auto-trigger) should import the internal
+ * helper directly from `@/lib/print-pipeline/trigger-upscale` — that module
+ * is `import 'server-only'` and therefore never exposed via the Server
+ * Action RPC layer.
  */
 export async function triggerUpscale(
 	orderId: string,
 ): Promise<ActionResult<TriggerUpscaleData>> {
 	await requireAdmin()
-
-	const parsed = triggerUpscaleSchema.safeParse({ orderId })
-	if (!parsed.success) {
-		return { success: false, error: 'errors.invalidInput' }
-	}
-
-	const adminDb = createAdminClient()
-
-	const { data: order, error: orderError } = await adminDb
-		.from('orders')
-		.select(
-			'id, user_id, generated_image_path, upscale_status, upscale_task_id',
-		)
-		.eq('id', parsed.data.orderId)
-		.single()
-
-	if (orderError || !order) {
-		return { success: false, error: 'errors.orderNotFound' }
-	}
-
-	if (!order.generated_image_path) {
-		return { success: false, error: 'errors.artworkNotReady' }
-	}
-
-	// Guard against duplicate triggers — admin should explicitly reset to retry.
-	if (
-		order.upscale_status === 'processing' ||
-		order.upscale_status === 'success'
-	) {
-		return {
-			success: true,
-			data: {
-				orderId: order.id,
-				taskId: order.upscale_task_id ?? '',
-			},
-		}
-	}
-
-	const { data: urlData } = adminDb.storage
-		.from('images')
-		.getPublicUrl(order.generated_image_path)
-
-	if (!urlData?.publicUrl) {
-		return { success: false, error: 'errors.generic' }
-	}
-
-	let taskId: string
-	try {
-		const result = await createUpscaleTask(
-			urlData.publicUrl,
-			DEFAULT_UPSCALE_FACTOR,
-		)
-		taskId = result.taskId
-	} catch (err) {
-		console.error('[triggerUpscale] Kie createUpscaleTask', err)
-		await captureServerError(err, {
-			action: 'triggerUpscale',
-			stage: 'create_task',
-			orderId: order.id,
-		})
-		await adminDb
-			.from('orders')
-			.update({ upscale_status: 'fail' satisfies UpscaleStatus })
-			.eq('id', order.id)
-		revalidateOrder(order.id)
-		return { success: false, error: 'errors.generic' }
-	}
-
-	const { error: updateError } = await adminDb
-		.from('orders')
-		.update({
-			upscale_task_id: taskId,
-			upscale_status: 'processing' satisfies UpscaleStatus,
-		})
-		.eq('id', order.id)
-
-	if (updateError) {
-		console.error('[triggerUpscale] order update', updateError)
-		await captureServerError(updateError, {
-			action: 'triggerUpscale',
-			stage: 'order_update',
-			orderId: order.id,
-			taskId,
-		})
-		return { success: false, error: 'errors.generic' }
-	}
-
-	revalidateOrder(order.id)
-	return { success: true, data: { orderId: order.id, taskId } }
+	return triggerUpscaleInternal(orderId)
 }
 
 /**

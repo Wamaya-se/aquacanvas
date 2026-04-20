@@ -1,10 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { z } from 'zod'
 import { getStripe } from '@/lib/stripe'
 import { getStripeWebhookSecret } from '@/lib/env'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { sendOrderConfirmation, sendAdminOrderNotification } from '@/lib/email/send'
 import { captureServerError } from '@/lib/observability'
+import { triggerUpscaleInternal } from '@/lib/print-pipeline/trigger-upscale'
 
 export async function POST(request: Request) {
 	const body = await request.text()
@@ -109,7 +110,7 @@ export async function POST(request: Request) {
 
 		const { data: order } = await adminDb
 			.from('orders')
-			.select('id, price_cents, generated_image_path, format_id, styles(name), print_formats(name)')
+			.select('id, price_cents, generated_image_path, format_id, upscale_status, styles(name), print_formats(name)')
 			.eq('id', orderId)
 			.single()
 
@@ -134,6 +135,31 @@ export async function POST(request: Request) {
 				sendOrderConfirmation(emailData),
 				sendAdminOrderNotification(emailData),
 			])
+
+			// Kick off print-ready upscale if we haven't already (either because
+			// trigger mode is `post_checkout`, or `post_generation` mode crashed
+			// mid-flight and left the order in `pending`). `after()` defers the
+			// work until after we ack the webhook so Stripe never retries due
+			// to a slow Kie createTask call.
+			if (order.upscale_status === 'pending') {
+				after(async () => {
+					try {
+						const res = await triggerUpscaleInternal(order.id)
+						if (!res.success) {
+							console.error(
+								`[stripe-webhook] post_checkout upscale failed for ${order.id}:`,
+								res.error,
+							)
+						}
+					} catch (err) {
+						console.error('[stripe-webhook] upscale trigger', err)
+						await captureServerError(err, {
+							stage: 'stripe_webhook_upscale_trigger',
+							orderId: order.id,
+						})
+					}
+				})
+			}
 		}
 
 		const discountCodeId = session.metadata?.discountCodeId

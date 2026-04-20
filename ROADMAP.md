@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-20 (Fas 14 Batch B klar — Topaz-integration + upscale-actions + admin-settings helpers redo för pipeline-integration) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-20 (Fas 14 Batch C klar — pre-AI normalizeInput, post-generation/post-checkout upscale-routing via `after()`, internal vs admin trigger split) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** **Fas 14 Batch C — Pipeline-integration** (pre-AI `normalizeInput`, `upscale_trigger`-routing i `checkGenerationStatus` + Stripe webhook, fire-and-forget via `after()`/void-await). Batch A + B ✅ klara.
+**Nästa upp:** **Fas 14 Batch D — Admin-UI** (trigger-toggle, print-fil-sektion per order, manuell "kör om upscale"). Batch A + B + C ✅ klara.
 **Parallellt möjligt:** Fas 13 email capture, abandoned cart, newsletter, delning.
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
@@ -378,22 +378,25 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Batch C — Pipeline-integration 🔗
 
-> **Session-scope:** Koppla ihop allt — pre-AI normalisering, post-checkout upscale, fallback post-generation om toggle säger det.
+> **Status:** ✅ Klar (2026-04-20) · **Commit:** pending · **Session-scope:** Koppla ihop allt — pre-AI normalisering, post-checkout upscale, fallback post-generation om toggle säger det.
 
-- [ ] `generateArtwork` i `src/lib/actions/ai.ts`:
-  - Innan upload: kör `normalizeInput()` på `file.arrayBuffer()`
-  - Ladda upp normaliserad buffer (ej original file-objekt)
-  - Uppdatera `original_image_path` med `.jpg`-ext konsekvent
-- [ ] `checkGenerationStatus`:
-  - Efter lyckad generering: läs `upscale_trigger` från `app_settings`
-  - Om `post_generation`: trigga `triggerUpscale(orderId)` asynkront (fire-and-forget, fel loggas men blockerar ej)
-  - Annars: `upscale_status = 'pending'` (väntar på checkout)
-- [ ] Stripe webhook `src/app/api/webhooks/stripe/route.ts`:
-  - Efter `status=paid`: om `upscale_status = 'pending'`, trigga `triggerUpscale(orderId)` (icke-blockerande)
-  - Webhook MÅSTE svara snabbt — använd `after()` eller direkt `void triggerUpscale()` utan await
-- [ ] Uppdatera `create-flow.tsx` progress-UI om `post_generation` är aktivt — visa extra steg "Förbereder tryckfil..." via `upscale_status`
+- [x] `generateArtwork` i `src/lib/actions/ai.ts`:
+  - Innan upload: `normalizeInput(file.arrayBuffer())` — EXIF-rotate, sRGB, cap 4096 px, q=92 chroma 4:4:4, inbäddad sRGB ICC
+  - Laddar upp normaliserad `Buffer` direkt till Supabase Storage (ersätter `File`-objektet)
+  - `original_image_path` alltid `.jpg` (tar bort gammal MIME-baserad extension)
+  - Kie.ai `uploadFileToKie` vidgad till `ArrayBuffer | Buffer | Uint8Array` med narrow-to-`Uint8Array` före `Buffer.from` så TS-overloads inte kollapsar
+- [x] `checkGenerationStatus`:
+  - Efter lyckad generering: sätter `upscale_status = 'pending'` på ordern oavsett trigger-läge (enklare idempotens än flaggor)
+  - Läser `getUpscaleTrigger()` från `app_settings` — om `post_generation`: `after(() => triggerUpscaleInternal(order.id))` (non-blocking, loggar fel via `captureServerError`)
+  - Om `post_checkout`: lämnar `upscale_status='pending'` — Stripe-webhooken tar hand om resten
+- [x] `triggerUpscale` split: ny `triggerUpscaleInternal(orderId)` utan admin-guard för server-only callers (webhook + ai.ts), befintlig `triggerUpscale` är nu admin-guardad wrapper för manuell retry-UI
+- [x] Stripe webhook `src/app/api/webhooks/stripe/route.ts`:
+  - Läser nu `upscale_status` + relationer i samma select
+  - Efter `status=paid`: om `upscale_status === 'pending'`, `after(() => triggerUpscaleInternal(order.id))` — Stripe får 200 OK innan Kie createTask körs, inga retries p.g.a. latens
+  - Alla fel loggas till Sentry med `stripe_webhook_upscale_trigger`-stage
+- [ ] Uppdatera `create-flow.tsx` progress-UI (flyttat till Batch D tillsammans med övrig synlighet) — admin får full insyn där, kund behöver inte vänta på upscale för att gå till checkout
 
-**Exit-kriterium:** E2E-flöde fungerar: upload → AI-stil → (om post-gen: upscale) → checkout → (om post-checkout: upscale) → print.jpg redo + order markerad.
+**Exit-kriterium:** ✅ Typecheck rent, ESLint (inga nya fel — 4 pre-existing i andra filer), fire-and-forget-semantik via `next/server` `after()`. Manuell E2E mot cloud kvar till Batch D när admin-UI kan trigga retries.
 
 ### Batch D — Admin-UI 🎛️
 
