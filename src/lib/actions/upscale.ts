@@ -13,6 +13,7 @@ import { checkUpscaleStatusSchema } from '@/validators/admin'
 import { captureServerError } from '@/lib/observability'
 import {
 	triggerUpscaleInternal,
+	DEFAULT_UPSCALE_FACTOR,
 	type TriggerUpscaleData,
 } from '@/lib/print-pipeline/trigger-upscale'
 import type { ActionResult } from '@/types/actions'
@@ -122,6 +123,7 @@ export async function checkUpscaleStatus(
 			stage: 'poll',
 			orderId: order.id,
 			taskId: order.upscale_task_id,
+			factor: DEFAULT_UPSCALE_FACTOR,
 		})
 		return { success: false, error: 'errors.generic' }
 	}
@@ -138,6 +140,7 @@ export async function checkUpscaleStatus(
 			stage: 'task_fail',
 			orderId: order.id,
 			taskId: order.upscale_task_id,
+			factor: DEFAULT_UPSCALE_FACTOR,
 			failCode: status.failCode ?? undefined,
 		})
 
@@ -251,6 +254,7 @@ export async function checkUpscaleStatus(
 			stage: 'download_convert_upload',
 			orderId: order.id,
 			taskId: order.upscale_task_id,
+			factor: DEFAULT_UPSCALE_FACTOR,
 		})
 
 		await adminDb

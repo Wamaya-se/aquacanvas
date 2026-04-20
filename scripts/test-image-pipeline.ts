@@ -11,6 +11,8 @@
  *   npx tsx scripts/test-image-pipeline.ts
  */
 
+import './_shim-server-only'
+
 import sharp from 'sharp'
 import {
 	normalizeInput,

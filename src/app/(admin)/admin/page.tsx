@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
+import { getUpscaleMetrics } from '@/lib/actions/admin-settings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -34,6 +35,7 @@ export default async function AdminDashboardPage() {
 		todayOrdersResult,
 		pendingResult,
 		recentResult,
+		pipelineHealth,
 	] = await Promise.all([
 		supabase.from('orders').select('id', { count: 'exact', head: true }),
 		supabase
@@ -53,6 +55,7 @@ export default async function AdminDashboardPage() {
 			.select('id, status, price_cents, customer_email, created_at, styles(name)')
 			.order('created_at', { ascending: false })
 			.limit(10),
+		getUpscaleMetrics({ days: 7 }),
 	])
 
 	const totalOrders = allOrdersResult.count ?? 0
@@ -95,6 +98,71 @@ export default async function AdminDashboardPage() {
 					</Card>
 				))}
 			</div>
+
+			<Card className="mb-8">
+				<CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+					<CardTitle className="font-heading text-lg tracking-[-0.03em]">
+						{t('pipelineHealthWeek')}
+					</CardTitle>
+					<Button variant="ghost" size="sm" asChild>
+						<Link href="/admin/settings">{t('viewSettings')}</Link>
+					</Button>
+				</CardHeader>
+				<CardContent>
+					{pipelineHealth.total === 0 ? (
+						<p className="font-sans text-sm text-muted-foreground">
+							{t('pipelineHealthEmpty')}
+						</p>
+					) : (
+						<dl className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineHealthSuccessRate')}
+								</dt>
+								<dd className="font-heading text-2xl font-semibold text-foreground">
+									{pipelineHealth.successRate != null
+										? `${Math.round(pipelineHealth.successRate * 100)}%`
+										: '—'}
+								</dd>
+							</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineHealthFailed')}
+								</dt>
+								<dd className="font-heading text-2xl font-semibold text-foreground">
+									{pipelineHealth.fail}
+								</dd>
+							</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineHealthInFlight')}
+								</dt>
+								<dd className="font-heading text-2xl font-semibold text-foreground">
+									{pipelineHealth.pending + pipelineHealth.processing}
+								</dd>
+							</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineHealthAvgTime')}
+								</dt>
+								<dd className="font-heading text-2xl font-semibold text-foreground">
+									{pipelineHealth.avgCostTimeMs != null
+										? `${(pipelineHealth.avgCostTimeMs / 1000).toFixed(1)}s`
+										: '—'}
+								</dd>
+							</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineHealthAvgDpi')}
+								</dt>
+								<dd className="font-heading text-2xl font-semibold text-foreground">
+									{pipelineHealth.avgPrintDpi ?? '—'}
+								</dd>
+							</div>
+						</dl>
+					)}
+				</CardContent>
+			</Card>
 
 		<div className="overflow-x-auto rounded-xl bg-surface-container">
 			<div className="flex items-center justify-between px-6 py-4">

@@ -10,9 +10,11 @@ import type { UpscaleStatus } from '@/types/supabase'
 
 /**
  * Always 4x for now — keeps cost / quality modelling simple.
- * Future Batch E work may tune per-format based on `requiredLongestPx`.
+ * Future work (Fas 14 "smart upscale-factor" follow-up) may tune per-format
+ * based on `requiredLongestPx`. Exported so other pipeline modules can tag
+ * telemetry/events with the same source-of-truth value.
  */
-const DEFAULT_UPSCALE_FACTOR: UpscaleFactor = '4'
+export const DEFAULT_UPSCALE_FACTOR: UpscaleFactor = '4'
 
 export interface TriggerUpscaleData {
 	orderId: string
@@ -111,6 +113,7 @@ export async function triggerUpscaleInternal(
 			action: 'triggerUpscaleInternal',
 			stage: 'create_task',
 			orderId: order.id,
+			factor: DEFAULT_UPSCALE_FACTOR,
 		})
 		await adminDb
 			.from('orders')
@@ -135,6 +138,7 @@ export async function triggerUpscaleInternal(
 			stage: 'order_update',
 			orderId: order.id,
 			taskId,
+			factor: DEFAULT_UPSCALE_FACTOR,
 		})
 		return { success: false, error: 'errors.generic' }
 	}

@@ -156,24 +156,36 @@ export interface UpscaleMetrics {
 	avgCostTimeMs: number | null
 	avgPrintDpi: number | null
 	total: number
+	/**
+	 * Success rate as a 0..1 fraction of terminal states (success + fail).
+	 * `null` when no terminal rows exist yet (avoids showing "0%" on an
+	 * empty window, which would misleadingly imply a regression).
+	 */
+	successRate: number | null
+	windowDays: number
 }
 
 /**
- * Aggregate upscale-pipeline health for the last 30 days.
+ * Aggregate upscale-pipeline health for the last N days (default 30).
  *
- * Used by the admin settings page to surface headline pipeline stats without
- * needing a dedicated monitoring dashboard yet (Batch E). Runs server-side
- * with the admin client — RLS would allow the authenticated admin to read
- * this anyway, but using service-role keeps the query safe to call from
- * settings pages where we already use admin-only helpers.
+ * Used by the admin settings page (30-day window) and the admin dashboard
+ * Pipeline Health widget (7-day window). Runs server-side with the admin
+ * client — RLS would allow the authenticated admin to read this anyway,
+ * but using service-role keeps the query safe to call from settings pages
+ * where we already use admin-only helpers.
  *
- * Returns zeros (and null averages) when there are no rows in the window.
+ * Success rate is computed against terminal states only (success / (success+fail))
+ * so still-running jobs don't skew the number downward. Returns zeros (and
+ * null averages / null rate) when there are no rows in the window.
  */
-export async function getUpscaleMetrics(): Promise<UpscaleMetrics> {
+export async function getUpscaleMetrics(
+	options: { days?: number } = {},
+): Promise<UpscaleMetrics> {
 	await requireAdmin()
 
+	const windowDays = options.days ?? 30
 	const adminDb = createAdminClient()
-	const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+	const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString()
 
 	const { data, error } = await adminDb
 		.from('orders')
@@ -190,6 +202,8 @@ export async function getUpscaleMetrics(): Promise<UpscaleMetrics> {
 			avgCostTimeMs: null,
 			avgPrintDpi: null,
 			total: 0,
+			successRate: null,
+			windowDays,
 		}
 	}
 
@@ -228,6 +242,8 @@ export async function getUpscaleMetrics(): Promise<UpscaleMetrics> {
 		}
 	}
 
+	const terminal = success + fail
+
 	return {
 		success,
 		fail,
@@ -236,5 +252,7 @@ export async function getUpscaleMetrics(): Promise<UpscaleMetrics> {
 		avgCostTimeMs: costN > 0 ? Math.round(costSum / costN) : null,
 		avgPrintDpi: dpiN > 0 ? Math.round(dpiSum / dpiN) : null,
 		total: data.length,
+		successRate: terminal > 0 ? success / terminal : null,
+		windowDays,
 	}
 }

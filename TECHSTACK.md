@@ -154,11 +154,74 @@ Aquacanvas är en e-commerce-plattform som erbjuder AI-genererad konst. Kunden l
 
 ### Bildflöde
 
-1. Kund laddar upp originalfoto → Server Action validerar (storlek, MIME-typ)
-2. Originalfoto sparas i Supabase Storage (`{userId}/originals/{orderId}.{ext}`)
-3. AI-tjänst anropas med originalfoto + vald stil
-4. Genererad bild sparas i Supabase Storage (`{userId}/generated/{orderId}.{ext}`)
-5. Kund förhandsgranskar → godkänner → betalar → orderstatus uppdateras
+Tvådelad pipeline: ett snabbt **preview**-spår för webb/e-mail och ett
+tyngre **print**-spår för tryckeri. All bildbearbetning sker server-side
+via `sharp` (se `src/lib/image-processing.ts`).
+
+**1. Upload & normalisering**
+
+- Kund laddar upp foto → Server Action validerar storlek + MIME-typ
+- `normalizeInput()` körs före AI: EXIF-rotate, konvertera till sRGB,
+  cappa längsta sidan till 4096 px, strippa metadata utom sRGB-ICC,
+  encoda som q=92 mozjpeg chroma 4:4:4
+- Normaliserad buffer laddas upp direkt till Supabase Storage som
+  `images/{user.id|guest}/originals/{orderId}.jpg`
+
+**2. AI-generering**
+
+- Kie.ai (`nano-banana-edit`) anropas med publik URL till normaliserad bild
+- Output (~1184×864 landscape/portrait, ~1024² square) sparas som
+  `images/{prefix}/generated/{orderId}.jpg` — utgör `preview.jpg`-spåret
+- `orders.upscale_status` sätts till `pending` för att markera att
+  print-filen återstår
+
+**3. Upscale + AdobeRGB-konvertering (print-spår)**
+
+- Trigger styrs av `app_settings.upscale_trigger`:
+  `post_checkout` (default, efter Stripe `payment_intent.succeeded`) eller
+  `post_generation` (direkt efter AI). Båda vägarna använder
+  `next/server` `after()` så inga hot paths blockeras.
+- Kie.ai Topaz (`topaz/image-upscale`, 4x) körs med samma task/polling-
+  mönster som AI-generering
+- Resultatet går genom `convertToAdobeRgb()`: embedd full AdobeRGB1998
+  ICC-profil från `src/lib/icc/AdobeRGB1998.icc`, q=92 chroma 4:4:4,
+  mozjpeg, alla andra metadata strippas
+- Sparas som `images/{prefix}/print/{orderId}.jpg` i
+  `orders.print_image_path`. `print_dpi` beräknas mot valt print-format
+  och visas i admin orderdetalj.
+
+**Tryckeri-spec** (fastställd 2026-04-17):
+
+| Parameter | Värde |
+|-----------|-------|
+| Format | JPEG, 8-bit RGB |
+| Färgrymd | AdobeRGB (1998) — ICC inbäddad i varje fil |
+| Kompression | q=92, chroma 4:4:4 |
+| Extra kanaler | Inga |
+| DPI-mål | 300 (30×40), 200 (50×70), 150 (70×100) |
+
+**Observability**
+
+- `upscale_task_id`, `upscale_cost_time_ms`, `upscale_status` på varje
+  order — ger både kostnadsspårning och per-order felsökning
+- `app_settings.upscale_trigger` gör det möjligt att byta trigger-läge
+  utan deploy
+- Admin `/admin` dashboard visar "Pipeline health (last 7 days)"
+  (success rate, avg DPI, avg tid, in-flight)
+- Admin `/admin/settings` visar 30-dagars aggregat + trigger-toggle
+- Admin order-detalj har `UpscaleActionButton` för manuell
+  run/retry/check mot failade jobb
+- Sentry-taggar på alla upscale-fel: `action`, `stage`, `orderId`,
+  `taskId`, `factor`
+
+**Utveckling**
+
+- `scripts/test-image-pipeline.ts` — unit-liknande asserts mot
+  `normalizeInput` + `convertToAdobeRgb` + DPI-matte
+- `scripts/test-pipeline.ts` — integrationstest mot ett korpus i
+  `test-images/worst-case/` (synthetic fixtures genereras vid första
+  körning, real-world bilder kan droppas i mappen enligt README).
+  Verifierar ICC-embedd, chroma-subsampling, DPI-golv per format.
 
 ---
 

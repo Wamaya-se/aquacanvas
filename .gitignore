@@ -41,3 +41,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# pipeline test runs — artifacts regenerated on demand by scripts/test-pipeline.ts
+/test-images/output/

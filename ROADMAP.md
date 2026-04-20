@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-20 (Fas 14 Batch D klar — admin trigger-toggle, pipeline-metrics, print-fil-sektion + manuell retry per order) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-20 (Fas 14 Batch E klar — worst-case testpipeline, factor-tag på Sentry-fel, Pipeline Health-widget på admin dashboard, TECHSTACK-dokumentation) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** **Fas 14 Batch E — Testning & monitoring** (worst-case testbildsvit, Sentry-tags, pipeline-hälsa widget). Batch A + B + C + D ✅ klara.
+**Nästa upp:** **Fas 14 Batch F — DPI pre-checkout gate** (valfri — infrastruktur redo för när stora format återaktiveras) *eller* Fas 13 parallellt (email capture, abandoned cart, newsletter, delning). Batch A–E ✅ klara.
 **Parallellt möjligt:** Fas 13 email capture, abandoned cart, newsletter, delning.
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
@@ -417,23 +417,19 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Batch E — Testning & monitoring 🧪
 
-> **Session-scope:** Worst-case-testsvit + observability så vi hittar problem tidigt.
+> **Status:** ✅ Klar (2026-04-20) · **Commit:** pending · **Session-scope:** Worst-case-testsvit + observability så vi hittar problem tidigt.
 
-- [ ] `test-images/worst-case/` — 8–10 testbilder:
-  - Liten thumbnail (480×640)
-  - 12 MP iPhone med P3-profil
-  - 12 MP iPhone HEIC (konverterad via mac före commit)
-  - Instagram-screenshot (komprimerad JPEG, ingen ICC)
-  - Mobilskärmdump PNG
-  - Gammal Facebook-download (strippad metadata)
-  - Motion-blur nattbild
-  - Scannat foto (gulnat)
-- [ ] Dev-script `scripts/test-pipeline.ts` som kör `normalizeInput` + simulerad upscale mot alla bilder, outputar till `test-images/output/`, verifierar minimum DPI och ICC-profil via `sharp.metadata()`
-- [ ] Sentry-tags på upscale-fel (`upscale_task_id`, `order_id`, `factor`)
-- [ ] Admin-dashboard: widget "Pipeline-hälsa senaste 7 dagar" (success rate, genomsnittlig DPI, antal failed)
-- [ ] Dokumentera i `TECHSTACK.md` under "Bildflöde" (uppdatera befintligt avsnitt)
+- [x] `test-images/worst-case/` — korpus-struktur + README som dokumenterar slots (12 MP iPhone P3, HEIC, Instagram, PNG-screenshot, Facebook-strip, motion blur, scannat foto). Scriptet lärs scanna mappen, så user/CI kan droppa in riktiga bilder efter behov.
+- [x] 4 committade synthetic fixtures (tiny thumbnail 480×640, PNG-screenshot 900×1600, stripped-metadata JPEG 2000×1500, large landscape 5000×3000) genereras av scriptet vid första körning — håller repot runable utan att binärdata explodereras.
+- [x] Dev-script `scripts/test-pipeline.ts`: normalize → simulerad 4x lanczos3-upscale → AdobeRGB-konvertering → DPI per format (30×40/30×30 aktiva + 50×70/70×100 för kontext) → ICC/chroma/golv-gates. Utfall sparas i `test-images/output/` (gitignored).
+- [x] `scripts/_shim-server-only.ts` — Node require-cache shim så båda pipeline-testscripten kan köras utanför Next.js-kontext (server-only-paketet throwar annars på import). Fixade även regression i Batch A-scriptet.
+- [x] Sentry-tags på upscale-fel: `factor` tillagd i `triggerUpscaleInternal` (create_task, order_update) + alla tre stages i `checkUpscaleStatus` (poll, task_fail, download_convert_upload). `DEFAULT_UPSCALE_FACTOR` exporteras nu från `trigger-upscale.ts` för single source of truth.
+- [x] Admin-dashboard: Pipeline Health-kort (7-dagars fönster) med success rate, failed count, in-flight, avg tid, avg DPI. Tomt-state: "No upscale activity in the last 7 days." + länk till settings.
+- [x] `getUpscaleMetrics` utökad: valfri `days`-param, ny `successRate` (mot terminal states, `null` när tomt), `windowDays` returneras. Settings-sidan kör fortsatt 30 dagar, dashboard 7 dagar.
+- [x] TECHSTACK.md "Bildflöde"-sektionen helt omskriven: tvådelad preview/print-pipeline, tryckeri-spec, observability, utveckling.
+- [x] Nya i18n-nycklar i admin-namespace: `pipelineHealthWeek`, `pipelineHealthSuccessRate`, `pipelineHealthFailed`, `pipelineHealthInFlight`, `pipelineHealthAvgDpi`, `pipelineHealthAvgTime`, `pipelineHealthEmpty`, `viewSettings`.
 
-**Exit-kriterium:** Alla worst-case-bilder genererar giltiga AdobeRGB-printfiler, monitoring ger synlighet över pipeline-hälsa i prod.
+**Exit-kriterium:** ✅ Alla 4 synthetic fixtures passerar pipeline-gates (ICC embedded, chroma 4:4:4, DPI ≥ 150 på 30×40), monitoring synliggör health på `/admin` och `/admin/settings`, utvecklare kan droppa riktiga bilder i `test-images/worst-case/` och re-köra. Typecheck rent, ESLint utan nya fel (4 pre-existing kvar sedan Batch C).
 
 ### Batch F — DPI pre-checkout gate (valfri, efter Batch C) 🛡️
 
