@@ -100,7 +100,7 @@ Aquacanvas är en e-commerce-plattform som erbjuder AI-genererad konst. Kunden l
 
 - **`next-intl`** hanterar all text-översättning, datum/valuta-formatering och plural-regler
 - **Path-based routing** (`localePrefix: 'as-needed'`): svenska på `/*`, engelska på `/en/*`
-  - Admin-rutter (`/admin/*`) är **locale-neutrala** och alltid engelska — forceras via `x-pathname`-header i middleware → `src/i18n/request.ts`
+  - Admin-rutter (`/admin/*`) är **locale-neutrala** och alltid engelska — forceras via `x-pathname`-header i `src/proxy.ts` → `src/i18n/request.ts`
   - Alla publika sidor ligger under `src/app/[locale]/...`
 - **`localeDetection: false`** — URL:en är sanningskällan; cookie-baserad auto-redirect är avstängd för att undvika språkväxlar-loopar
 - **`NextIntlClientProvider` i `[locale]/layout.tsx`** (inte root) så provider-kontexten re-renderas korrekt vid locale-byte

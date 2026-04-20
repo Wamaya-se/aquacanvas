@@ -57,8 +57,12 @@ export default sentryEnabled
 			org: process.env.SENTRY_ORG,
 			project: process.env.SENTRY_PROJECT,
 			widenClientFileUpload: true,
-			disableLogger: true,
-			automaticVercelMonitors: true,
 			tunnelRoute: '/monitoring',
+			webpack: {
+				treeshake: {
+					removeDebugLogging: true,
+				},
+				automaticVercelMonitors: true,
+			},
 		})
 	: intlConfig

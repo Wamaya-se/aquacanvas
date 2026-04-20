@@ -49,7 +49,7 @@ async function refreshSupabaseSession(
 	return user
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
 	const { pathname } = request.nextUrl
 
 	// Admin routes: Supabase session + role guard, no i18n routing

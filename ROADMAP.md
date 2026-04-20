@@ -28,7 +28,7 @@
 - [x] DB-schema: initial migration (profiles, styles, orders, generated_images) med RLS, triggers, enums
 - [x] Storage bucket: `images` med RLS-policies
 - [x] TypeScript-typer: src/types/supabase.ts (Database, manuella typer)
-- [x] Middleware: src/middleware.ts (sessionsrefresh, admin-guard — kundroutes borttagna)
+- [x] Proxy: src/proxy.ts (sessionsrefresh, admin-guard — kundroutes borttagna; omdöpt från middleware.ts 2026-04-20)
 - [x] Auth flow: login/register Server Actions (Zod-validering, ActionResult), logout
 - [x] Auth-sidor: /login, /register (pages + LoginForm/RegisterForm klientkomponenter) — dolda för kunder
 - [x] Auth callback: /auth/callback route handler (code exchange)
@@ -464,6 +464,7 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 - [x] **Svenska översättning** (`messages/sv.json`) + `hreflang`-implementation — path-based routing (sv default på `/`, en på `/en/*`), `next-intl` middleware komponerad med Supabase session-refresh, admin förblir engelska, locale switcher i header, `buildMetadata` + `sitemap.ts` genererar `hreflang` automatiskt. `NextIntlClientProvider` flyttad till `[locale]/layout.tsx` så switcher fungerar stabilt över navigering. Stripe checkout använder `getLocale()` för UI-språk, `success_url`/`cancel_url` och produktnamn; locale skickas med i session-metadata för senare email-flöden. OAuth callback-URL bygger rätt path via `getPathname`. Alla error-boundaries återställer via `common.tryAgain`; root `error.tsx` använder statisk tvåspråkig fallback för att undvika provider-krasch. (2026-04-17)
 - [x] **Email-templates på svenska** — Migration 00015 tillade `locale`-kolumn på `orders` (default `'sv'`, check `('sv','en')`). Webhook läser `locale` från Stripe session-metadata och sparar på order. Templates (`order-confirmation`, `order-shipped`, `admin-order-notification`) refaktorerade till rena string-prop-komponenter; `send.ts` pre-resolvar via `getTranslations({ locale, namespace: 'emails.*' })`. `admin-orders.ts` läser `locale` från order vid shipped-mejl. `i18n/request.ts` uppdaterad att respektera explicit `requestLocale` först (så admin-actions och webhook kan rendera annan locale än `/admin`-default `'en'`). Nya översättningsnycklar i `emails.*`-namespace i både `sv.json` och `en.json`. (2026-04-18)
 - [x] **Kundrecensioner/betyg på produktsidor** — Migration 00016 tillade `product_reviews`-tabell + `review_status`-enum (`pending`/`approved`/`rejected`). RLS: publik läsning av godkända, publik insert med `status='pending'`-tvång, admin full via `is_admin()`. Server Actions: `submitReview` (Zod, rate-limitad via ny `reviewSubmit`-bucket på IP+email, 3/h), `moderateReview` (admin approve/reject/delete + `revalidatePath('/p/[slug]')`), `getPublicReviewStats`. Admin-UI: `/admin/reviews` med statusfilter + moderation-knappar (approve/reject/delete) + sidebar-länk. Publik UI: `ReviewsSection` server-komponent med snittbetyg + lista, `ReviewForm` klientkomponent med interaktiv stjärnväljare och i18n-fel. Product JSON-LD utökat med `aggregateRating` (ratingValue + reviewCount) när godkända omdömen finns — SEO-boost via rich results. Nya i18n-nycklar: `reviews`-namespace (sv + en) + admin `review*`-nycklar. (2026-04-18)
+- [x] **Next.js 16 deprecations åtgärdade** — `src/middleware.ts` omdöpt till `src/proxy.ts` (funktion `middleware` → `proxy`) per Next.js 16 filkonvention (matcher och logik oförändrade; `next-intl`-import kvar på paketets `next-intl/middleware`-export). Sentry-options i `next.config.ts` flyttade: `disableLogger` → `webpack.treeshake.removeDebugLogging`, `automaticVercelMonitors` → `webpack.automaticVercelMonitors`. Verifierat: lint + `tsc --noEmit` grönt; `/`, `/en`, `/login`, `/sitemap.xml`, `/robots.txt` svarar 200; `/admin` utan session ger 307 → `/login?redirect=%2Fadmin`. (2026-04-20)
 - [ ] E-post-capture innan generering (för abandoned cart + lead gen)
 - [ ] Abandoned cart e-post-sekvens (Resend + cron / Supabase Edge Function)
 - [ ] Delningsfunktion: dela genererat verk på sociala medier (med dynamisk OG-bild)
@@ -519,7 +520,7 @@ Tables: profiles, styles (+ price_cents), products (+ faq JSONB), discount_codes
 Enums: order_status (created/processing/generated/paid/shipped), user_role (customer/admin), preview_status (pending/processing/success/fail), review_status (pending/approved/rejected)
 Functions: is_admin(), handle_updated_at(), handle_new_user()
 Storage: `images` bucket (10 MB limit, jpeg/png/webp) + `products/` folder for product images
-Auth flows: email/password login (admin only), session refresh via middleware, callback route for OAuth
+Auth flows: email/password login (admin only), session refresh via proxy, callback route for OAuth
 Payments: Stripe Checkout (redirect), webhook at /api/webhooks/stripe, SEK currency, Promotion Codes/Coupons for discounts
 Email: Resend (order confirmation, admin notification, shipped notification)
 Hosting: Vercel (https://aquacanvas.vercel.app), Supabase Cloud (EU West — xinnmqappqywcgzexapg)
