@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-18 (Fas 14 scope justerad — nano-banana-edit output uppmätt till 1184 px, stora format inaktiverade via migration 00018) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-20 (Fas 14 Batch B klar — Topaz-integration + upscale-actions + admin-settings helpers redo för pipeline-integration) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** **Fas 14 Batch B — Upscaling-modul** (Kie Topaz-integration, `triggerUpscale` + `checkUpscaleStatus` server actions, admin-settings helpers). Batch A ✅ klar.
+**Nästa upp:** **Fas 14 Batch C — Pipeline-integration** (pre-AI `normalizeInput`, `upscale_trigger`-routing i `checkGenerationStatus` + Stripe webhook, fire-and-forget via `after()`/void-await). Batch A + B ✅ klara.
 **Parallellt möjligt:** Fas 13 email capture, abandoned cart, newsletter, delning.
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
@@ -362,19 +362,19 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Batch B — Upscaling-modul via Kie.ai Topaz 🔼
 
-> **Session-scope:** Extend `lib/ai.ts` med Topaz-stöd, bygg Server Action som triggar + pollar upscale, hantera fel/retry. Ej integrerat i flödet än.
+> **Status:** ✅ Klar (2026-04-20) · **Commit:** pending · **Session-scope:** Extend `lib/ai.ts` med Topaz-stöd, bygg Server Action som triggar + pollar upscale, hantera fel/retry. Ej integrerat i flödet än.
 
-- [ ] `createUpscaleTask(imageUrl, factor)` i `src/lib/ai.ts` (återanvänd `getHeaders()`, samma createTask-endpoint med `model: 'topaz/image-upscale'`)
-- [ ] Uppdatera `getTaskStatus` så den hanterar Topaz-resultatformat (bör vara samma `resultJson.resultUrls`)
-- [ ] `src/lib/actions/upscale.ts`:
-  - `triggerUpscale(orderId)` — hämtar `generated_image_path`, skapar publik URL, anropar Kie, sparar `upscale_task_id` + status=processing
-  - `checkUpscaleStatus(orderId)` — pollar, när klar: laddar ner resultat, kör `convertToAdobeRGB`, sparar `print.jpg` i Storage, uppdaterar `print_image_path` + `print_dpi` + status=success
-- [ ] `src/lib/actions/admin-settings.ts` — `getUpscaleTrigger()` + `setUpscaleTrigger('post_checkout' | 'post_generation')` (admin-guard, skriver till `app_settings`)
-- [ ] Zod-validators för nya actions (`src/validators/admin.ts`)
-- [ ] Error-hantering: om Topaz failar, sätt status=fail, logga via `captureServerError`, admin-alert via befintlig orderdetalj-vy (senare batch)
-- [ ] Kostnadslogging: utöka `ai_cost_time_ms` eller använd ny kolumn (se Batch A)
+- [x] `createUpscaleTask(imageUrl, factor)` i `src/lib/ai.ts` (återanvänd `getHeaders()`, samma createTask-endpoint med `model: 'topaz/image-upscale'`, Zod-typad `UpscaleFactor = '1'|'2'|'4'|'8'`)
+- [x] Uppdatera `getTaskStatus` — normaliserar `resultUrls[]` + fallback för `imageUrl` / `image_url` för defensiv kompatibilitet över Kie-modeller
+- [x] `src/lib/actions/upscale.ts`:
+  - `triggerUpscale(orderId)` — admin-guardad, hämtar `generated_image_path`, skapar publik URL via storage, anropar Kie, sparar `upscale_task_id` + status=processing. Idempotent (returnerar befintlig task vid `processing`/`success`).
+  - `checkUpscaleStatus(orderId)` — admin-guardad, kort-kretsar vid `success`, pollar annars Kie, på `success` laddar ner resultat → `convertToAdobeRgb` → `images/{prefix}/print/{orderId}.jpg` i Storage → räknar `print_dpi` mot `print_formats.width_cm/height_cm` (longest) → uppdaterar `print_image_path`, `print_dpi`, `upscale_cost_time_ms`, `upscale_status=success`
+- [x] `src/lib/actions/admin-settings.ts` — `getUpscaleTrigger()` (service-role-read, safe-parse-fallback till default) + `setUpscaleTrigger('post_checkout' | 'post_generation')` (admin-guardad upsert med `revalidatePath('/admin/settings')`)
+- [x] Zod-validators i `src/validators/admin.ts` — `upscaleTriggerSchema`, `triggerUpscaleSchema`, `checkUpscaleStatusSchema` + `DEFAULT_UPSCALE_TRIGGER` export
+- [x] Error-hantering: alla fel går via `captureServerError` med `{ orderId, taskId, stage }`-tags, sätter `upscale_status='fail'` och revaliderar admin-vyer. Provider-`failMsg` loggas bara server-side — klient får `errors.generic`.
+- [x] Kostnadslogging: `upscale_cost_time_ms` skrivs från Kie `costTime` både vid fail och success (Batch A-kolumn återanvänd).
 
-**Exit-kriterium:** Kan manuellt trigga upscale mot en befintlig order via server-action, print.jpg landar i Storage med AdobeRGB-profil.
+**Exit-kriterium:** ✅ Typecheck + ESLint rent. Manuell trigger-path redo för admin-UI i Batch D. E2E-verifiering mot cloud-order kvar till Batch C/D när UI finns.
 
 ### Batch C — Pipeline-integration 🔗
 

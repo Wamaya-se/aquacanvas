@@ -5,6 +5,9 @@ const KIE_BASE_URL = 'https://api.kie.ai'
 const KIE_FILE_UPLOAD_URL = 'https://kieai.redpandaai.co/api/file-base64-upload'
 const MODEL_NANO_BANANA_EDIT = 'google/nano-banana-edit'
 const MODEL_FLUX_IMAGE_TO_IMAGE = 'flux-2/flex-image-to-image'
+const MODEL_TOPAZ_IMAGE_UPSCALE = 'topaz/image-upscale'
+
+export type UpscaleFactor = '1' | '2' | '4' | '8'
 
 export type KieTaskState =
 	| 'waiting'
@@ -41,8 +44,17 @@ interface KieFileUploadResponse {
 	}
 }
 
+/**
+ * Kie task results are returned as a JSON-encoded string in `resultJson`.
+ *
+ * Most models use `resultUrls: string[]` (nano-banana-edit, flux, topaz).
+ * A few single-asset models instead return `imageUrl` / `image_url`.
+ * We normalize all variants to a single `resultUrls` array.
+ */
 interface KieTaskResultUrls {
-	resultUrls: string[]
+	resultUrls?: string[]
+	imageUrl?: string
+	image_url?: string
 }
 
 export interface KieTaskDetails {
@@ -139,6 +151,52 @@ export async function createImageTask(
 	return { taskId: json.data.taskId }
 }
 
+/**
+ * Create a Topaz image upscale task via Kie.ai.
+ *
+ * Input accepts a publicly reachable URL (max 10 MB, JPG/PNG/WebP). Output
+ * longest side is capped by Kie at 20 000 px (input_longest × factor).
+ *
+ * The resulting task follows the standard Kie record format: poll via
+ * `getTaskStatus()` which will surface `resultUrls[0]` on `state === 'success'`.
+ *
+ * @param imageUrl - Publicly reachable source image URL (e.g. Supabase public URL).
+ * @param factor   - Upscale factor; '4' is our default per Fas 14 plan.
+ */
+export async function createUpscaleTask(
+	imageUrl: string,
+	factor: UpscaleFactor = '4',
+): Promise<{ taskId: string }> {
+	const body = {
+		model: MODEL_TOPAZ_IMAGE_UPSCALE,
+		input: {
+			image_url: imageUrl,
+			upscale_factor: factor,
+		},
+	}
+
+	const res = await fetch(`${KIE_BASE_URL}/api/v1/jobs/createTask`, {
+		method: 'POST',
+		headers: getHeaders(),
+		body: JSON.stringify(body),
+	})
+
+	if (!res.ok) {
+		const text = await res.text().catch(() => 'Unknown error')
+		throw new Error(`Kie.ai createTask (upscale) failed (${res.status}): ${text}`)
+	}
+
+	const json = (await res.json()) as KieCreateTaskResponse
+
+	if (json.code !== 200) {
+		throw new Error(`Kie.ai createTask (upscale) error (${json.code}): ${json.msg}`)
+	}
+
+	return { taskId: json.data.taskId }
+}
+
+export { MODEL_TOPAZ_IMAGE_UPSCALE }
+
 export async function getTaskStatus(taskId: string): Promise<{
 	state: KieTaskState
 	resultUrls: string[] | null
@@ -171,7 +229,13 @@ export async function getTaskStatus(taskId: string): Promise<{
 	if (state === 'success' && resultJson) {
 		try {
 			const parsed = JSON.parse(resultJson) as KieTaskResultUrls
-			resultUrls = parsed.resultUrls ?? null
+			if (parsed.resultUrls?.length) {
+				resultUrls = parsed.resultUrls
+			} else if (parsed.imageUrl) {
+				resultUrls = [parsed.imageUrl]
+			} else if (parsed.image_url) {
+				resultUrls = [parsed.image_url]
+			}
 		} catch {
 			console.error('[ai] Failed to parse resultJson:', resultJson)
 		}
