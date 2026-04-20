@@ -1,7 +1,12 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { getSiteUrl, getAdminEmail } from '@/lib/env'
-import { getTestModeEnabled, getRateLimitBypassEnabled } from '@/lib/actions/admin-settings'
+import {
+	getTestModeEnabled,
+	getRateLimitBypassEnabled,
+	getUpscaleTrigger,
+	getUpscaleMetrics,
+} from '@/lib/actions/admin-settings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -15,6 +20,7 @@ import {
 } from '@/components/ui/table'
 import { TestModeToggle } from '@/components/admin/test-mode-toggle'
 import { RateLimitToggle } from '@/components/admin/rate-limit-toggle'
+import { UpscaleTriggerToggle } from '@/components/admin/upscale-trigger-toggle'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('admin.meta')
@@ -28,8 +34,13 @@ function isEnvSet(key: string): boolean {
 export default async function AdminSettingsPage() {
 	const t = await getTranslations('admin')
 
-	const isTestMode = await getTestModeEnabled()
-	const isRateLimitBypassed = await getRateLimitBypassEnabled()
+	const [isTestMode, isRateLimitBypassed, upscaleTrigger, upscaleMetrics] =
+		await Promise.all([
+			getTestModeEnabled(),
+			getRateLimitBypassEnabled(),
+			getUpscaleTrigger(),
+			getUpscaleMetrics(),
+		])
 
 	const hasResendKey = isEnvSet('RESEND_API_KEY')
 	const hasStripeKey = isEnvSet('STRIPE_SECRET_KEY')
@@ -142,6 +153,76 @@ export default async function AdminSettingsPage() {
 					</CardContent>
 				</Card>
 			</div>
+
+			<Card className="mb-8">
+				<CardHeader>
+					<CardTitle className="font-heading text-lg tracking-[-0.03em]">
+						{t('pipeline')}
+					</CardTitle>
+					<p className="font-sans text-xs text-muted-foreground">
+						{t('pipelineDescription')}
+					</p>
+				</CardHeader>
+				<CardContent className="space-y-6">
+					<UpscaleTriggerToggle initialValue={upscaleTrigger} />
+					<Separator />
+					<div>
+						<p className="mb-3 font-sans text-xs font-medium text-muted-foreground">
+							{t('pipelineMetrics')}
+						</p>
+						{upscaleMetrics.total === 0 ? (
+							<p className="font-sans text-sm text-muted-foreground">
+								{t('pipelineMetricsNone')}
+							</p>
+						) : (
+							<dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+								<div>
+									<dt className="font-sans text-xs text-muted-foreground">
+										{t('pipelineMetricsSuccess')}
+									</dt>
+									<dd className="font-heading text-xl font-semibold text-foreground">
+										{upscaleMetrics.success}
+									</dd>
+								</div>
+								<div>
+									<dt className="font-sans text-xs text-muted-foreground">
+										{t('pipelineMetricsFail')}
+									</dt>
+									<dd className="font-heading text-xl font-semibold text-foreground">
+										{upscaleMetrics.fail}
+									</dd>
+								</div>
+								<div>
+									<dt className="font-sans text-xs text-muted-foreground">
+										{t('pipelineMetricsProcessing')}
+									</dt>
+									<dd className="font-heading text-xl font-semibold text-foreground">
+										{upscaleMetrics.processing + upscaleMetrics.pending}
+									</dd>
+								</div>
+								<div>
+									<dt className="font-sans text-xs text-muted-foreground">
+										{t('pipelineMetricsAvgTime')}
+									</dt>
+									<dd className="font-heading text-xl font-semibold text-foreground">
+										{upscaleMetrics.avgCostTimeMs != null
+											? `${(upscaleMetrics.avgCostTimeMs / 1000).toFixed(1)}s`
+											: '—'}
+									</dd>
+								</div>
+								<div>
+									<dt className="font-sans text-xs text-muted-foreground">
+										{t('pipelineMetricsAvgDpi')}
+									</dt>
+									<dd className="font-heading text-xl font-semibold text-foreground">
+										{upscaleMetrics.avgPrintDpi ?? '—'}
+									</dd>
+								</div>
+							</dl>
+						)}
+					</div>
+				</CardContent>
+			</Card>
 
 			<div className="overflow-hidden rounded-xl bg-surface-container">
 				<div className="px-6 py-4">

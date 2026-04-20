@@ -10,7 +10,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { OrderStatusChanger } from '@/components/admin/order-status-changer'
+import { UpscaleActionButton } from '@/components/admin/upscale-action-button'
 import { getSceneName } from '@/lib/db-helpers'
+import type { UpscaleStatus } from '@/types/supabase'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('admin.meta')
@@ -59,6 +61,26 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 	const generatedImageUrl = order.generated_image_path
 		? supabase.storage.from('images').getPublicUrl(order.generated_image_path).data.publicUrl
 		: null
+	const printImageUrl = order.print_image_path
+		? supabase.storage.from('images').getPublicUrl(order.print_image_path).data.publicUrl
+		: null
+
+	const upscaleStatus = (order.upscale_status ?? null) as UpscaleStatus | null
+	const printStatusVariant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' =
+		upscaleStatus === 'success'
+			? 'success'
+			: upscaleStatus === 'fail'
+				? 'destructive'
+				: upscaleStatus === 'processing' || upscaleStatus === 'pending'
+					? 'warning'
+					: 'secondary'
+	const printStatusKey = upscaleStatus
+		? (`printStatus${upscaleStatus.charAt(0).toUpperCase()}${upscaleStatus.slice(1)}` as
+				| 'printStatusPending'
+				| 'printStatusProcessing'
+				| 'printStatusSuccess'
+				| 'printStatusFail')
+		: ('printStatusIdle' as const)
 
 	const { data: envPreviews } = await supabase
 		.from('environment_previews')
@@ -174,6 +196,68 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 				</div>
 
 				<div className="space-y-6">
+					<div className="rounded-xl bg-surface-container p-6">
+						<div className="mb-4 flex items-center justify-between gap-3">
+							<h2 className="font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">
+								{t('printFile')}
+							</h2>
+							<Badge variant={printStatusVariant}>{t(printStatusKey)}</Badge>
+						</div>
+						<dl className="space-y-3">
+							<div className="flex justify-between">
+								<dt className="font-sans text-sm text-muted-foreground">
+									{t('printFileDpi')}
+								</dt>
+								<dd className="font-sans text-sm text-foreground">
+									{order.print_dpi ?? '—'}
+								</dd>
+							</div>
+							<Separator />
+							<div className="flex justify-between">
+								<dt className="font-sans text-sm text-muted-foreground">
+									{t('printFileCostTime')}
+								</dt>
+								<dd className="font-sans text-sm text-foreground">
+									{order.upscale_cost_time_ms != null
+										? `${(order.upscale_cost_time_ms / 1000).toFixed(1)}s`
+										: '—'}
+								</dd>
+							</div>
+							{order.upscale_task_id && (
+								<>
+									<Separator />
+									<div className="flex justify-between">
+										<dt className="font-sans text-sm text-muted-foreground">
+											{t('printFileTaskId')}
+										</dt>
+										<dd className="font-mono text-xs text-muted-foreground break-all">
+											{order.upscale_task_id.slice(0, 24)}
+											{order.upscale_task_id.length > 24 ? '…' : ''}
+										</dd>
+									</div>
+								</>
+							)}
+						</dl>
+						<div className="mt-4 flex flex-col gap-3">
+							{printImageUrl ? (
+								<Button variant="outline" size="sm" asChild>
+									<a href={printImageUrl} target="_blank" rel="noreferrer">
+										{t('printFileDownload')}
+									</a>
+								</Button>
+							) : (
+								<p className="font-sans text-xs text-muted-foreground">
+									{t('printFileNone')}
+								</p>
+							)}
+							<UpscaleActionButton
+								orderId={order.id}
+								status={upscaleStatus}
+								hasGeneratedImage={Boolean(order.generated_image_path)}
+							/>
+						</div>
+					</div>
+
 					{(order.ai_model || order.ai_task_id || order.ai_cost_time_ms) && (
 						<div className="rounded-xl bg-surface-container p-6">
 							<h2 className="mb-4 font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">

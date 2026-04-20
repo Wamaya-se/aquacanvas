@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-20 (Fas 14 Batch C klar — pre-AI normalizeInput, post-generation/post-checkout upscale-routing via `after()`, internal vs admin trigger split) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-20 (Fas 14 Batch D klar — admin trigger-toggle, pipeline-metrics, print-fil-sektion + manuell retry per order) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** **Fas 14 Batch D — Admin-UI** (trigger-toggle, print-fil-sektion per order, manuell "kör om upscale"). Batch A + B + C ✅ klara.
+**Nästa upp:** **Fas 14 Batch E — Testning & monitoring** (worst-case testbildsvit, Sentry-tags, pipeline-hälsa widget). Batch A + B + C + D ✅ klara.
 **Parallellt möjligt:** Fas 13 email capture, abandoned cart, newsletter, delning.
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
@@ -400,19 +400,20 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Batch D — Admin-UI 🎛️
 
-> **Session-scope:** Synliggör pipelinen i admin, låt admin växla trigger-läge, visa DPI/print-fil per order.
+> **Status:** ✅ Klar (2026-04-20) · **Commit:** pending · **Session-scope:** Synliggör pipelinen i admin, låt admin växla trigger-läge, visa DPI/print-fil per order.
 
-- [ ] `src/app/[locale]/(admin)/admin/settings/page.tsx`:
-  - Ny sektion "Bildpipeline" med:
-    - Radio/Switch: "Upscaling-trigger: efter generering / efter betalning"
-    - Info-badge om nuvarande genomsnittlig upscale-kostnad + -tid senaste 30 dagarna
-- [ ] `src/components/admin/upscale-trigger-toggle.tsx` (klientkomponent, använder server actions)
-- [ ] Admin orderdetalj (`/admin/orders/[id]`):
-  - Ny sektion "Print-fil": status-badge, länk till `print.jpg`, visad DPI, upscale-kostnad, tid
-  - Knapp "Kör om upscale" (admin-triggad retry vid fail)
-- [ ] i18n-nycklar i `messages/sv.json` + `messages/en.json` (admin-namespace)
+- [x] `src/app/(admin)/admin/settings/page.tsx`:
+  - Ny sektion "Image Pipeline" med:
+    - Select för trigger-läge (post_checkout / post_generation) med hint-text per val
+    - Pipeline-metrics: antal success/fail/processing + avg upscale-tid + avg DPI senaste 30 dagarna (via ny `getUpscaleMetrics`)
+- [x] `src/components/admin/upscale-trigger-toggle.tsx` — klientkomponent som sparar via `setUpscaleTrigger`, med dirty-state och error-hantering via `useActionError`
+- [x] `src/components/admin/upscale-action-button.tsx` — enhetligt run/retry/check-action beroende på `upscale_status` (null/fail → run/retry, pending/processing → check, success → dold)
+- [x] Admin orderdetalj (`/admin/orders/[id]`):
+  - Ny sektion "Print file": status-badge (success/warning/destructive/secondary), DPI, upscale-tid, task-ID, öppna-knapp för `print.jpg`
+  - `UpscaleActionButton` kör `triggerUpscale`/`checkUpscaleStatus` + `router.refresh()`
+- [x] i18n-nycklar i `messages/sv.json` + `messages/en.json` (admin-namespace — engelska per konvention)
 
-**Exit-kriterium:** Admin kan se/växla pipeline-beteende utan kod-ändring, kan manuellt reprocessa trasiga ordrar.
+**Exit-kriterium:** ✅ Admin kan se/växla pipeline-beteende utan kod-ändring, kan manuellt reprocessa trasiga ordrar. Typecheck rent, ESLint utan nya fel (4 pre-existing i theme-toggle/create-flow/env-preview-gallery från tidigare batchar).
 
 ### Batch E — Testning & monitoring 🧪
 

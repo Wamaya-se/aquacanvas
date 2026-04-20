@@ -147,3 +147,94 @@ export async function setUpscaleTrigger(
 	revalidatePath('/admin/settings')
 	return { success: true, data: undefined }
 }
+
+export interface UpscaleMetrics {
+	success: number
+	fail: number
+	processing: number
+	pending: number
+	avgCostTimeMs: number | null
+	avgPrintDpi: number | null
+	total: number
+}
+
+/**
+ * Aggregate upscale-pipeline health for the last 30 days.
+ *
+ * Used by the admin settings page to surface headline pipeline stats without
+ * needing a dedicated monitoring dashboard yet (Batch E). Runs server-side
+ * with the admin client — RLS would allow the authenticated admin to read
+ * this anyway, but using service-role keeps the query safe to call from
+ * settings pages where we already use admin-only helpers.
+ *
+ * Returns zeros (and null averages) when there are no rows in the window.
+ */
+export async function getUpscaleMetrics(): Promise<UpscaleMetrics> {
+	await requireAdmin()
+
+	const adminDb = createAdminClient()
+	const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+
+	const { data, error } = await adminDb
+		.from('orders')
+		.select('upscale_status, upscale_cost_time_ms, print_dpi')
+		.gte('created_at', since)
+		.not('upscale_status', 'is', null)
+
+	if (error || !data) {
+		return {
+			success: 0,
+			fail: 0,
+			processing: 0,
+			pending: 0,
+			avgCostTimeMs: null,
+			avgPrintDpi: null,
+			total: 0,
+		}
+	}
+
+	let success = 0
+	let fail = 0
+	let processing = 0
+	let pending = 0
+	let costSum = 0
+	let costN = 0
+	let dpiSum = 0
+	let dpiN = 0
+
+	for (const row of data) {
+		switch (row.upscale_status) {
+			case 'success':
+				success++
+				break
+			case 'fail':
+				fail++
+				break
+			case 'processing':
+				processing++
+				break
+			case 'pending':
+				pending++
+				break
+		}
+
+		if (row.upscale_cost_time_ms != null) {
+			costSum += row.upscale_cost_time_ms
+			costN++
+		}
+		if (row.print_dpi != null) {
+			dpiSum += row.print_dpi
+			dpiN++
+		}
+	}
+
+	return {
+		success,
+		fail,
+		processing,
+		pending,
+		avgCostTimeMs: costN > 0 ? Math.round(costSum / costN) : null,
+		avgPrintDpi: dpiN > 0 ? Math.round(dpiSum / dpiN) : null,
+		total: data.length,
+	}
+}
