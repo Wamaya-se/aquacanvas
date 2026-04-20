@@ -1,10 +1,11 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-18 (kundrecensioner på produktsidor — aggregateRating JSON-LD, admin-moderering, rate-limitat submit-flöde) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-18 (Fas 14 scope justerad — nano-banana-edit output uppmätt till 1184 px, stora format inaktiverade via migration 00018) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** Reviews är live med admin-moderering + `aggregateRating` i Product JSON-LD. Kvar i Fas 13: email capture innan generering, abandoned cart, newsletter, delning.
+**Nästa upp:** **Fas 14 Batch B — Upscaling-modul** (Kie Topaz-integration, `triggerUpscale` + `checkUpscaleStatus` server actions, admin-settings helpers). Batch A ✅ klar.
+**Parallellt möjligt:** Fas 13 email capture, abandoned cart, newsletter, delning.
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
 
@@ -302,6 +303,152 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 - [x] `usePollingTask`-hook utbruten — DRY mellan `create-flow.tsx` och `environment-preview-gallery.tsx`, inkl. `useLatest`-pattern
 - [x] `getSiteUrl()` i `sitemap.ts` + `robots.ts`
 - [x] Type-safe Supabase-relationer via `db-helpers.ts` (`parseOrientation`, `parseFaq`, `parseFormatRow`, `parseProductRow`, `getSceneName`, `unwrapSingleRelation`) — ersätter samtliga `as unknown as`-cast
+
+---
+
+## Fas 14: Print-ready bildpipeline
+
+> **Mål:** Säkerställa att varje beställning resulterar i en tryckfärdig fil som matchar tryckeriets tekniska krav, oavsett kvalitet på kundens uppladdade foto.
+> **Bakgrund:** Produktionen bekräftade specs 2026-04-17. Användaruppladdade bilder kräver hårdare automation — tryckeriet gör ingen case-by-case-bedömning utan skickar filerna som de är till produktion.
+> **Verifierat 2026-04-18 via `scripts/probe-ai-output.ts`:** `nano-banana-edit` producerar deterministiskt 1184×864 px (landscape/portrait) och ~1024×1024 (square). Efter 4x Topaz-upscale = 4736/4096 px längsta sida. Räcker för 30×40/40×30/30×30 vid tryckeri-DPI, men **inte** för 50×70+ eller 70×70. Stora format inaktiverade via `00018_disable_large_formats.sql` tills vi eventuellt byter till `nano-banana-pro` (2K native) eller förhandlar ner DPI-krav.
+
+### Tryckeri-spec (bekräftad)
+
+| Parameter | Värde |
+|---|---|
+| Filformat | JPEG |
+| Färgrymd | **AdobeRGB (1998)** — inbäddad ICC i varje fil |
+| Färgläge | RGB, 8-bit |
+| Extra kanaler | Inga |
+| Bleed | Ingen (1 mm kan skäras bort) |
+| Kompression | "Klokt" → q=92, chroma 4:4:4 |
+| Dimension | Ratio avgör — exakt cm-storlek krävs inte |
+| DPI-mål | 300 för små (30×40), 200 för mellan (50×70), 150 för stora (70×100) |
+
+### Beslutade designval
+
+1. **Upscaling via Kie.ai Topaz** (`topaz/image-upscale`, 4x), återanvänder befintligt task/polling-mönster.
+2. **Upscaling triggas post-checkout** (default, efter `payment_intent.succeeded` i Stripe-webhook) för att undvika kostnad på abandoned carts.
+3. **Admin-toggle för trigger-läge** — `post_checkout` (default) eller `post_generation`, lagras i ny `app_settings`-tabell så det kan växlas utan redeploy.
+4. **Två filer per order** i Storage:
+   - `preview.jpg` — sRGB, q=85, för webbvisning (finns redan som `generated_image_path`)
+   - `print.jpg` — AdobeRGB, q=92 chroma 4:4:4, för tryckeri (nytt — `print_image_path`)
+5. **Alltid 4x upscale** initialt för enkel kostnads-/kvalitetsmodell. Smart upscale-factor baserat på format kan komma i senare optimering.
+6. **sRGB working space** internt mellan AI och upscale — konvertering till AdobeRGB sker bara i sista steget (print-fil).
+7. **EXIF-normalisering före AI** — `sharp().rotate()` fixar orientering, strippa all metadata utom ICC.
+
+### Batch A — Foundation: sharp + ICC + DB-schema 🏗️
+
+> **Status:** ✅ Klar (2026-04-18) · **Commit:** pending
+
+- [x] `npm install sharp` + `server-only` (transitivt via guardade moduler)
+- [x] `AdobeRGB1998.icc` (560 bytes) kopierad från macOS ColorSync till `src/lib/icc/`
+- [x] `next.config.ts` — `outputFileTracingIncludes` säkerställer ICC-profilen bundlas med Vercel serverless-funktioner
+- [x] Migration `00019_print_pipeline.sql`:
+  - `orders.print_image_path`, `orders.print_dpi`, `orders.upscale_task_id`, `orders.upscale_cost_time_ms`, `orders.upscale_status`
+  - Ny tabell `app_settings (key text pk, value jsonb, updated_at)` med RLS (public read, admin-only write)
+  - Seed: `('upscale_trigger', '"post_checkout"')`
+- [x] `src/types/supabase.ts` uppdaterad manuellt (gen types --linked saknar privileges): orders-kolumner, app_settings-tabell, upscale_status-enum, `UpscaleStatus`-export
+- [x] `src/lib/image-processing.ts`:
+  - `normalizeInput(buffer, { maxLongestSide, quality })` — EXIF-rotate, sRGB, cap, q=92 mozjpeg 4:4:4, inbäddad sRGB ICC
+  - `convertToAdobeRgb(buffer)` — embed AdobeRGB ICC via filväg, q=92, chroma 4:4:4, mozjpeg, strippa övrig metadata
+  - `probeDimensions(buffer)` — lättviktig dim-kontroll utan full bearbetning
+  - `computePrintDpi(w, h, formatLongestCm)` — floor-rundat, konservativt
+  - `requiredLongestPx(formatLongestCm, targetDpi)` — ceil-rundat för gate-logik
+- [x] `scripts/test-image-pipeline.ts` — 16 asserts gröna: normalisering, cap-enforcement, AdobeRGB-ICC i output (`Adobe RGB (1998)` i description), chroma 4:4:4, DPI-matte
+- [x] `scripts/probe-ai-output.ts` — mätverktyg mot befintliga nano-banana-edit-ordrar (användes till scope-beslutet)
+
+**Exit-kriterium uppfyllt:** Pipeline fungerar lokalt mot testbild, 560-byte AdobeRGB ICC korrekt inbäddad i output, DB-schema live i cloud, inga regressioner i typecheck.
+
+### Batch B — Upscaling-modul via Kie.ai Topaz 🔼
+
+> **Session-scope:** Extend `lib/ai.ts` med Topaz-stöd, bygg Server Action som triggar + pollar upscale, hantera fel/retry. Ej integrerat i flödet än.
+
+- [ ] `createUpscaleTask(imageUrl, factor)` i `src/lib/ai.ts` (återanvänd `getHeaders()`, samma createTask-endpoint med `model: 'topaz/image-upscale'`)
+- [ ] Uppdatera `getTaskStatus` så den hanterar Topaz-resultatformat (bör vara samma `resultJson.resultUrls`)
+- [ ] `src/lib/actions/upscale.ts`:
+  - `triggerUpscale(orderId)` — hämtar `generated_image_path`, skapar publik URL, anropar Kie, sparar `upscale_task_id` + status=processing
+  - `checkUpscaleStatus(orderId)` — pollar, när klar: laddar ner resultat, kör `convertToAdobeRGB`, sparar `print.jpg` i Storage, uppdaterar `print_image_path` + `print_dpi` + status=success
+- [ ] `src/lib/actions/admin-settings.ts` — `getUpscaleTrigger()` + `setUpscaleTrigger('post_checkout' | 'post_generation')` (admin-guard, skriver till `app_settings`)
+- [ ] Zod-validators för nya actions (`src/validators/admin.ts`)
+- [ ] Error-hantering: om Topaz failar, sätt status=fail, logga via `captureServerError`, admin-alert via befintlig orderdetalj-vy (senare batch)
+- [ ] Kostnadslogging: utöka `ai_cost_time_ms` eller använd ny kolumn (se Batch A)
+
+**Exit-kriterium:** Kan manuellt trigga upscale mot en befintlig order via server-action, print.jpg landar i Storage med AdobeRGB-profil.
+
+### Batch C — Pipeline-integration 🔗
+
+> **Session-scope:** Koppla ihop allt — pre-AI normalisering, post-checkout upscale, fallback post-generation om toggle säger det.
+
+- [ ] `generateArtwork` i `src/lib/actions/ai.ts`:
+  - Innan upload: kör `normalizeInput()` på `file.arrayBuffer()`
+  - Ladda upp normaliserad buffer (ej original file-objekt)
+  - Uppdatera `original_image_path` med `.jpg`-ext konsekvent
+- [ ] `checkGenerationStatus`:
+  - Efter lyckad generering: läs `upscale_trigger` från `app_settings`
+  - Om `post_generation`: trigga `triggerUpscale(orderId)` asynkront (fire-and-forget, fel loggas men blockerar ej)
+  - Annars: `upscale_status = 'pending'` (väntar på checkout)
+- [ ] Stripe webhook `src/app/api/webhooks/stripe/route.ts`:
+  - Efter `status=paid`: om `upscale_status = 'pending'`, trigga `triggerUpscale(orderId)` (icke-blockerande)
+  - Webhook MÅSTE svara snabbt — använd `after()` eller direkt `void triggerUpscale()` utan await
+- [ ] Uppdatera `create-flow.tsx` progress-UI om `post_generation` är aktivt — visa extra steg "Förbereder tryckfil..." via `upscale_status`
+
+**Exit-kriterium:** E2E-flöde fungerar: upload → AI-stil → (om post-gen: upscale) → checkout → (om post-checkout: upscale) → print.jpg redo + order markerad.
+
+### Batch D — Admin-UI 🎛️
+
+> **Session-scope:** Synliggör pipelinen i admin, låt admin växla trigger-läge, visa DPI/print-fil per order.
+
+- [ ] `src/app/[locale]/(admin)/admin/settings/page.tsx`:
+  - Ny sektion "Bildpipeline" med:
+    - Radio/Switch: "Upscaling-trigger: efter generering / efter betalning"
+    - Info-badge om nuvarande genomsnittlig upscale-kostnad + -tid senaste 30 dagarna
+- [ ] `src/components/admin/upscale-trigger-toggle.tsx` (klientkomponent, använder server actions)
+- [ ] Admin orderdetalj (`/admin/orders/[id]`):
+  - Ny sektion "Print-fil": status-badge, länk till `print.jpg`, visad DPI, upscale-kostnad, tid
+  - Knapp "Kör om upscale" (admin-triggad retry vid fail)
+- [ ] i18n-nycklar i `messages/sv.json` + `messages/en.json` (admin-namespace)
+
+**Exit-kriterium:** Admin kan se/växla pipeline-beteende utan kod-ändring, kan manuellt reprocessa trasiga ordrar.
+
+### Batch E — Testning & monitoring 🧪
+
+> **Session-scope:** Worst-case-testsvit + observability så vi hittar problem tidigt.
+
+- [ ] `test-images/worst-case/` — 8–10 testbilder:
+  - Liten thumbnail (480×640)
+  - 12 MP iPhone med P3-profil
+  - 12 MP iPhone HEIC (konverterad via mac före commit)
+  - Instagram-screenshot (komprimerad JPEG, ingen ICC)
+  - Mobilskärmdump PNG
+  - Gammal Facebook-download (strippad metadata)
+  - Motion-blur nattbild
+  - Scannat foto (gulnat)
+- [ ] Dev-script `scripts/test-pipeline.ts` som kör `normalizeInput` + simulerad upscale mot alla bilder, outputar till `test-images/output/`, verifierar minimum DPI och ICC-profil via `sharp.metadata()`
+- [ ] Sentry-tags på upscale-fel (`upscale_task_id`, `order_id`, `factor`)
+- [ ] Admin-dashboard: widget "Pipeline-hälsa senaste 7 dagar" (success rate, genomsnittlig DPI, antal failed)
+- [ ] Dokumentera i `TECHSTACK.md` under "Bildflöde" (uppdatera befintligt avsnitt)
+
+**Exit-kriterium:** Alla worst-case-bilder genererar giltiga AdobeRGB-printfiler, monitoring ger synlighet över pipeline-hälsa i prod.
+
+### Batch F — DPI pre-checkout gate (valfri, efter Batch C) 🛡️
+
+> **Session-scope:** Hård spärr i FormatPicker om valt format inte kan levereras i tillräcklig DPI.
+> **Notering:** Med nuvarande aktiva format (30×40, 40×30, 30×30) är alla alltid i grön zon — denna batch blir tekniskt redundant tills större format återaktiveras. Byggs ändå för att infrastrukturen ska vara redo.
+
+- [ ] Kolumner `generated_width_px`, `generated_height_px` på `orders` (fyll i vid `checkGenerationStatus` via `sharp.metadata()`)
+- [ ] Server-helper `computeFormatEligibility(genW, genH, formats, upscaleFactor)` i `src/lib/image-processing.ts`
+- [ ] `FormatPicker` uppdaterad: disabled-state, grön/gul/röd badges, tooltip med förklaring
+- [ ] `createCheckoutSession` validerar server-side att vald format är eligible (defense in depth)
+- [ ] Om alla format faller i röd zon: blockera checkout helt, visa uppmaning att ladda upp större bild
+- [ ] i18n-nycklar i `messages/sv.json` + `en.json` (errors + shop)
+
+### Öppna frågor (kan lösas parallellt med batcharna)
+
+- [ ] Utvärdera `nano-banana-pro` (2K native) mot `nano-banana-edit`: kostnad/call + kvalitetsjämförelse för era 5 stilar. Om Pro levererar likvärdig kvalitet till rimlig kostnad → byta modell och återaktivera 50×70/70×100.
+- [ ] Följ upp med tryckeriet: absolut minimum-DPI per storlek. Kan 50×70 tryckas @ 170 DPI? 70×100 @ 120 DPI? Det kan låsa upp stora format utan modellbyte.
+- [ ] Smart upscale-factor (1/2/4/8 baserat på behov istället för alltid 4x) — följer-upp-optimering efter Batch E
+- [ ] HEIC-stöd klient-side (`heic2any`) — separat Fas 15 om det blir frekvent kundklagomål
 
 ---
 

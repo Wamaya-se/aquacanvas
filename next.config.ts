@@ -35,6 +35,12 @@ const nextConfig: NextConfig = {
 			bodySizeLimit: '20mb',
 		},
 	},
+	// Ensure the AdobeRGB ICC profile is bundled with serverless functions on
+	// Vercel. Next.js's file-tracing doesn't pick up runtime fs.readFile paths
+	// automatically, so we include the folder explicitly.
+	outputFileTracingIncludes: {
+		'/**/*': ['./src/lib/icc/**/*'],
+	},
 }
 
 const withNextIntl = createNextIntlPlugin()

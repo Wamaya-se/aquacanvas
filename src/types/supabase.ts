@@ -39,6 +39,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          key: string
+          updated_at: string
+          value: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: Json
+        }
+        Relationships: []
+      }
       discount_codes: {
         Row: {
           code: string
@@ -213,11 +231,16 @@ export type Database = {
           orientation: string | null
           original_image_path: string | null
           price_cents: number | null
+          print_dpi: number | null
+          print_image_path: string | null
           product_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           stripe_session_id: string | null
           style_id: string
           updated_at: string
+          upscale_cost_time_ms: number | null
+          upscale_status: Database["public"]["Enums"]["upscale_status"] | null
+          upscale_task_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -235,11 +258,16 @@ export type Database = {
           orientation?: string | null
           original_image_path?: string | null
           price_cents?: number | null
+          print_dpi?: number | null
+          print_image_path?: string | null
           product_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           stripe_session_id?: string | null
           style_id: string
           updated_at?: string
+          upscale_cost_time_ms?: number | null
+          upscale_status?: Database["public"]["Enums"]["upscale_status"] | null
+          upscale_task_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -257,11 +285,16 @@ export type Database = {
           orientation?: string | null
           original_image_path?: string | null
           price_cents?: number | null
+          print_dpi?: number | null
+          print_image_path?: string | null
           product_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           stripe_session_id?: string | null
           style_id?: string
           updated_at?: string
+          upscale_cost_time_ms?: number | null
+          upscale_status?: Database["public"]["Enums"]["upscale_status"] | null
+          upscale_task_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -583,6 +616,7 @@ export type Database = {
       order_status: "created" | "processing" | "generated" | "paid" | "shipped"
       preview_status: "pending" | "processing" | "success" | "fail"
       review_status: "pending" | "approved" | "rejected"
+      upscale_status: "pending" | "processing" | "success" | "fail" | "skipped"
       user_role: "customer" | "admin"
     }
     CompositeTypes: {
@@ -716,6 +750,7 @@ export const Constants = {
     Enums: {
       order_status: ["created", "processing", "generated", "paid", "shipped"],
       preview_status: ["pending", "processing", "success", "fail"],
+      upscale_status: ["pending", "processing", "success", "fail", "skipped"],
       user_role: ["customer", "admin"],
     },
   },
@@ -730,6 +765,7 @@ export const Constants = {
 export type OrderStatus = Database['public']['Enums']['order_status']
 export type UserRole = Database['public']['Enums']['user_role']
 export type PreviewStatus = Database['public']['Enums']['preview_status']
+export type UpscaleStatus = Database['public']['Enums']['upscale_status']
 
 // Orientation is a domain-level constraint enforced at the application layer
 // (validators/order.ts) — the DB column is plain `text`. Kept here so the
