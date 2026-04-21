@@ -13,6 +13,7 @@ import {
 } from '@/lib/actions/environment-preview'
 import { useActionError } from '@/hooks/use-action-error'
 import { usePollingTask } from '@/hooks/use-polling-task'
+import { GenerationProgressBar } from '@/components/shop/generation-progress'
 
 const TEST_ENVIRONMENT_PREVIEWS: EnvironmentPreviewItem[] = [
 	{
@@ -157,26 +158,21 @@ export function EnvironmentPreviewGallery({
 	const isGenerating = state === 'generating'
 	const hasAnyProcessing = previews.some((p) => p.status === 'processing' || p.status === 'pending')
 
+	const progressActive = isGenerating || hasAnyProcessing
+
 	return (
 		<div className="flex flex-col gap-4">
-			<div className="flex items-center justify-between">
+			<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 				<h2 className="font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">
 					{t('environmentPreviewsHeading')}
 				</h2>
-				{(isGenerating || hasAnyProcessing) && (
-					<div className="flex items-center gap-2">
-						<Loader2
-							className="size-4 animate-spin text-brand"
-							aria-hidden="true"
-						/>
-						<p
-							className="font-sans text-xs text-muted-foreground"
-							role="status"
-							aria-live="polite"
-						>
-							{t('generatingPreviews')}
-						</p>
-					</div>
+				{progressActive && (
+					<GenerationProgressBar
+						message={t('progressEnvironmentPreviews')}
+						isActive={progressActive}
+						estimatedDurationMs={45_000}
+						className="sm:max-w-sm"
+					/>
 				)}
 			</div>
 

@@ -1,6 +1,6 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-21 (Fas 15 Batch B klar — hero-mockup.ts server actions + delad _order-ownership, Kie-pipeline identisk med env-previews, idempotens + retry, validators + E2E-driver; redo för Batch C progress-komponent) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-21 (Fas 15 Batch C klar — GenerationProgressBar med exp-avtagnings-RAF, prefers-reduced-motion via useSyncExternalStore, adopterad i EnvironmentPreviewGallery; gammal GenerationProgress zero-props oförändrad; redo för Batch D HeroMockup-integration) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
@@ -503,21 +503,21 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Batch C — Delad progress-komponent 🎨
 
-> **Status:** 🔴 Inte påbörjad · **Session-scope:** Bygg `GenerationProgress`-komponenten mot statisk dummy-data (Storybook-like i create-flow test-mode). Ingen backend-integration i denna batch. Adoptera den i `EnvironmentPreviewGallery` som smoke-test.
+> **Status:** ✅ Klar (2026-04-21) · **Commit:** pending · **Session-scope:** Progress-UI för sekundära AI-genereringar (hero mockup + env previews). Det befintliga `GenerationProgress` (full-block paintbrush-pulse för primär artwork-generering) bibehölls; ny slim `GenerationProgressBar` lades till som syskon-export i samma fil.
 
-- [ ] `src/components/shop/generation-progress.tsx` — återanvändbar:
-  - Props: `message: string`, `isActive: boolean`, `estimatedDurationMs?: number` (default 25_000), `variant?: 'hero' | 'gallery'` (för layout-variationer)
-  - Tidsbaserad progress: `useEffect` med `requestAnimationFrame`, exponentiell avtagning mot 90 % (`progress = 0.9 * (1 - exp(-elapsed/tau))`). När `isActive` flippar till `false`: snap till 100 % + fade-out
-  - Visuell stil: tunn progress bar i brand-accent-färg, lugn textmeddelande (`font-sans text-sm text-muted-foreground`), subtil shimmer-animation
-  - Reduced-motion: respekterar `prefers-reduced-motion` (statisk bar + bara textändring)
-  - a11y: `role="status"`, `aria-live="polite"`, `aria-valuenow`/`aria-valuemin`/`aria-valuemax` på progress bar
-- [ ] Nya i18n-nycklar i `messages/sv.json` + `messages/en.json` under `shop.progress.*`:
-  - `heroMockupMessage`: "Skapar en förhandsvisning av din canvas…" / "Creating a preview of your canvas…"
-  - `environmentPreviewsMessage`: "Placerar din tavla i olika rum…" / "Placing your artwork in different rooms…"
-- [ ] Adoptera komponenten i `EnvironmentPreviewGallery`: ersätt nuvarande "generatingPreviews" text + spinner med `<GenerationProgress>` när state är `generating`/`processing`. Behåll befintlig per-kort `Loader2` i `PreviewCardSkeleton`/`PreviewCard` (fail-robusthet), men den globala headern får progress-bar-behandling.
-- [ ] Visuell verifiering mot test-mode (`/create` med admin test-mode cookie) — flödet är statiskt där, så vi får en stabil visuell referens
+- [x] `src/components/shop/generation-progress.tsx` — två named exports:
+  - `GenerationProgress` (oförändrad, zero-props): full-block paintbrush-pulse för primär `generateArtwork`-state, används i `ArtPreview`
+  - `GenerationProgressBar` (ny): slim progress bar med props `{ message, isActive, estimatedDurationMs?, className? }`
+- [x] Tidsbaserad exponentiell progress: `progress(t) = 0.9 * (1 - exp(-t / tau))` med `tau = estimatedDurationMs / 3` — startar snabbt, avtar mot 90 %. När `isActive` flippar till `false` renderas direkt 100 % (ingen setState i effect — klart mot React 19 `react-hooks/set-state-in-effect`-regeln)
+- [x] `prefers-reduced-motion` respekterad via `useSyncExternalStore` — reduced users får en statisk bar på 45 % utan RAF-animation
+- [x] a11y: yttre `role="status"` + `aria-live="polite"`, inre `role="progressbar"` med `aria-valuemin/max/now`. Brand-färg på fyllnadsbaren, surface-container-high som bakgrund per DESIGN.md
+- [x] Nya i18n-nycklar under `shop`:
+  - `progressHeroMockup`: "Skapar en förhandsvisning av din canvas…" / "Creating a preview of your canvas…"
+  - `progressEnvironmentPreviews`: "Placerar din tavla i olika rum…" / "Placing your artwork in different rooms…"
+- [x] Adopterad i `EnvironmentPreviewGallery`: gamla Loader2+text i headern ersatt med `<GenerationProgressBar>` (estimatedDurationMs: 45s för multi-scene). Behåller per-kort `Loader2` i `PreviewCard` (skiljer "väntar på min scen" från "hela batchen pågår")
+- [x] Visuell sanity: komponent matchar surface-container-high / brand-färg / ghost-border-stil från DESIGN.md. Mot test-mode kommer Batch D ge första riktiga end-to-end-visuell verifiering
 
-**Exit-kriterium:** Komponent mountar/unmountar stabilt, progress-baren reseter korrekt mellan kör, env-preview-gallery har ny progress-UI, typecheck + ESLint rent, visuell review ok.
+**Exit-kriterium:** ✅ Typecheck + ESLint rent (pre-existing warning i `environment-preview-gallery.tsx:136` kvarstår, orelaterat till denna batch), `GenerationProgress` zero-props-kontraktet bevarat, ny `GenerationProgressBar` redo för `HeroMockup`-adoption i Batch D.
 
 ### Batch D — HeroMockup-komponent & integration 🖼️
 

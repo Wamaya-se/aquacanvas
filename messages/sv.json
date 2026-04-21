@@ -92,6 +92,8 @@
 		"seeInRoomDescription": "Förhandsvisa hur ditt konstverk ser ut på väggen i olika rum.",
 		"generatingPreviews": "Skapar rumspreviews…",
 		"generatingPreviewsDescription": "Vi placerar ditt konstverk i olika rum. Detta tar cirka 30–60 sekunder.",
+		"progressHeroMockup": "Skapar en förhandsvisning av din canvas…",
+		"progressEnvironmentPreviews": "Placerar din tavla i olika rum…",
 		"previewsComplete": "Rumspreviews klara!",
 		"previewFailed": "Den här förhandsvisningen kunde inte genereras.",
 		"retryPreview": "Försök igen",
