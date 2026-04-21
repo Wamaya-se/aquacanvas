@@ -108,6 +108,17 @@
 		"orientationDetectedHint": "Vi upptäckte att ditt foto är {orientation} och förvalde en matchande canvasorientering.",
 		"zoomImage": "Klicka för att förstora",
 		"imageCounter": "{current} av {total}",
+		"dpiBadgeRecommended": "Rekommenderat",
+		"dpiBadgeAcceptable": "OK",
+		"dpiBadgeTooLow": "Låg upplösning",
+		"dpiTooltip": {
+			"green": "Tillräcklig upplösning för skarpt tryck i denna storlek.",
+			"yellow": "Acceptabel upplösning — lätt mjukhet kan synas vid nära håll.",
+			"red": "Bilden är för liten för denna storlek och skulle tryckas suddig."
+		},
+		"dpiAllFormatsTooLowTitle": "Bilden är för liten för canvastryck",
+		"dpiAllFormatsTooLowBody": "Alla tillgängliga storlekar skulle bli suddiga med den här upplösningen. Ladda upp ett större foto (minst 1500×1500 px rekommenderas) så öppnar vi kassan igen.",
+		"dpiUploadBigger": "Ladda upp ett större foto",
 		"meta": {
 			"title": "Skapa ditt konstverk",
 			"description": "Ladda upp ett foto och förvandla det till fantastisk konst med AI. Välj mellan akvarell, oljemålning och fler stilar."
@@ -184,6 +195,7 @@
 		"styleInactive": "Den här stilen är inte tillgänglig ännu.",
 		"formatNotFound": "Det valda formatet är inte tillgängligt.",
 		"formatRequired": "Välj ett format innan du går till kassan.",
+		"formatDpiTooLow": "Den här storleken skulle bli suddig för ditt foto. Välj en mindre storlek eller ladda upp ett skarpare foto.",
 		"insufficientCredits": "Tjänsten är tillfälligt otillgänglig. Försök igen senare.",
 		"checkoutFailed": "Kunde inte starta kassan. Försök igen.",
 		"orderNotGenerated": "Denna beställning är inte klar för kassan ännu.",

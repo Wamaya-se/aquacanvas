@@ -224,7 +224,9 @@ export type Database = {
           customer_email: string | null
           discount_code_id: string | null
           format_id: string | null
+          generated_height_px: number | null
           generated_image_path: string | null
+          generated_width_px: number | null
           guest_session_id: string | null
           id: string
           locale: string
@@ -251,7 +253,9 @@ export type Database = {
           customer_email?: string | null
           discount_code_id?: string | null
           format_id?: string | null
+          generated_height_px?: number | null
           generated_image_path?: string | null
+          generated_width_px?: number | null
           guest_session_id?: string | null
           id?: string
           locale?: string
@@ -278,7 +282,9 @@ export type Database = {
           customer_email?: string | null
           discount_code_id?: string | null
           format_id?: string | null
+          generated_height_px?: number | null
           generated_image_path?: string | null
+          generated_width_px?: number | null
           guest_session_id?: string | null
           id?: string
           locale?: string

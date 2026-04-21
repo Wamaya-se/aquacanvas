@@ -2,6 +2,10 @@
 
 import { useTranslations } from 'next-intl'
 
+import type {
+	EligibilityGrade,
+	FormatEligibility,
+} from '@/lib/format-eligibility'
 import type { OrientationValue } from '@/validators/order'
 
 export interface FormatOption {
@@ -21,6 +25,12 @@ interface FormatPickerProps {
 	selected: string | null
 	onSelect: (id: string) => void
 	stylePriceCents: number
+	/**
+	 * Per-format DPI eligibility. When omitted (e.g. generation dimensions
+	 * unknown) the picker renders without badges and nothing is disabled —
+	 * defense-in-depth still blocks red formats server-side in checkout.
+	 */
+	eligibility?: Record<string, FormatEligibility>
 }
 
 function formatPrice(cents: number): string {
@@ -34,6 +44,7 @@ export function FormatPicker({
 	selected,
 	onSelect,
 	stylePriceCents,
+	eligibility,
 }: FormatPickerProps) {
 	const t = useTranslations('formats')
 	const tShop = useTranslations('shop')
@@ -50,23 +61,37 @@ export function FormatPicker({
 				{formats.map((format) => {
 					const isSelected = selected === format.id
 					const totalCents = stylePriceCents + format.priceCents
+					const grade = eligibility?.[format.id]?.grade
+					const isBlocked = grade === 'red'
 
 					return (
 						<button
 							key={format.id}
 							type="button"
 							aria-pressed={isSelected}
-							onClick={() => onSelect(format.id)}
+							aria-disabled={isBlocked}
+							disabled={isBlocked}
+							title={
+								grade
+									? tShop(`dpiTooltip.${grade}` as 'dpiTooltip.green')
+									: undefined
+							}
+							onClick={() => {
+								if (isBlocked) return
+								onSelect(format.id)
+							}}
 							className={`group relative flex flex-col items-center gap-2 rounded-xl px-4 py-5 text-center transition-colors ${
-								isSelected
+								isSelected && !isBlocked
 									? 'bg-brand/10 ring-2 ring-brand'
-									: 'bg-surface-container-high hover:bg-surface-container-highest'
+									: isBlocked
+										? 'cursor-not-allowed bg-surface-container-high opacity-55'
+										: 'bg-surface-container-high hover:bg-surface-container-highest'
 							}`}
 						>
 							<SizeIcon
 								widthCm={format.widthCm}
 								heightCm={format.heightCm}
-								isSelected={isSelected}
+								isSelected={isSelected && !isBlocked}
 							/>
 
 							<span className="font-heading text-sm font-semibold tracking-[-0.03em] text-foreground">
@@ -77,13 +102,15 @@ export function FormatPicker({
 								{t(format.slug as 'canvas-30x40') || format.description}
 							</span>
 
-							<span className={`font-heading text-lg font-bold tracking-[-0.03em] ${isSelected ? 'text-brand' : 'text-foreground'}`}>
+							<span className={`font-heading text-lg font-bold tracking-[-0.03em] ${isSelected && !isBlocked ? 'text-brand' : 'text-foreground'}`}>
 								{formatPrice(totalCents)}
 							</span>
 
 							<span className="font-sans text-[10px] text-muted-foreground">
 								{t('includesArt')} + {t('canvas')}
 							</span>
+
+							{grade && <QualityBadge grade={grade} />}
 						</button>
 					)
 				})}
@@ -93,6 +120,33 @@ export function FormatPicker({
 				<SizeComparison format={selectedFormat} />
 			)}
 		</div>
+	)
+}
+
+interface QualityBadgeProps {
+	grade: EligibilityGrade
+}
+
+function QualityBadge({ grade }: QualityBadgeProps) {
+	const tShop = useTranslations('shop')
+
+	const styles: Record<EligibilityGrade, string> = {
+		green: 'bg-success/15 text-success',
+		yellow: 'bg-warning/15 text-warning',
+		red: 'bg-destructive/15 text-destructive',
+	}
+	const labelKey: Record<EligibilityGrade, 'dpiBadgeRecommended' | 'dpiBadgeAcceptable' | 'dpiBadgeTooLow'> = {
+		green: 'dpiBadgeRecommended',
+		yellow: 'dpiBadgeAcceptable',
+		red: 'dpiBadgeTooLow',
+	}
+
+	return (
+		<span
+			className={`mt-1 rounded-full px-2 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-wide ${styles[grade]}`}
+		>
+			{tShop(labelKey[grade])}
+		</span>
 	)
 }
 

@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-20 (Fas 14 Batch E klar — worst-case testpipeline, factor-tag på Sentry-fel, Pipeline Health-widget på admin dashboard, TECHSTACK-dokumentation) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-21 (Fas 14 Batch F klar — DPI pre-checkout gate: generated_width/height_px på orders, computeFormatEligibility-helper, FormatPicker-badges, checkout-guard) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** **Fas 14 Batch F — DPI pre-checkout gate** (valfri — infrastruktur redo för när stora format återaktiveras) *eller* Fas 13 parallellt (email capture, abandoned cart, newsletter, delning). Batch A–E ✅ klara.
+**Nästa upp:** Fas 14 ✅ helt klar. Välj mellan **Fas 13** (email capture, abandoned cart, newsletter, delning) för tillväxt eller **Fas 10** (responsiv polish, performance, rate limit på bildgenerering) för produktionsmognad.
 **Parallellt möjligt:** Fas 13 email capture, abandoned cart, newsletter, delning.
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
@@ -431,17 +431,21 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 **Exit-kriterium:** ✅ Alla 4 synthetic fixtures passerar pipeline-gates (ICC embedded, chroma 4:4:4, DPI ≥ 150 på 30×40), monitoring synliggör health på `/admin` och `/admin/settings`, utvecklare kan droppa riktiga bilder i `test-images/worst-case/` och re-köra. Typecheck rent, ESLint utan nya fel (4 pre-existing kvar sedan Batch C).
 
-### Batch F — DPI pre-checkout gate (valfri, efter Batch C) 🛡️
+### Batch F — DPI pre-checkout gate 🛡️
 
-> **Session-scope:** Hård spärr i FormatPicker om valt format inte kan levereras i tillräcklig DPI.
-> **Notering:** Med nuvarande aktiva format (30×40, 40×30, 30×30) är alla alltid i grön zon — denna batch blir tekniskt redundant tills större format återaktiveras. Byggs ändå för att infrastrukturen ska vara redo.
+> **Status:** ✅ Klar (2026-04-21) · **Commit:** pending · **Session-scope:** Hård spärr i FormatPicker om valt format inte kan levereras i tillräcklig DPI.
+> **Notering:** Med nuvarande aktiva format (30×40, 40×30, 30×30) landar alla i grön zon för typiska nano-banana-edit-outputs — denna batch är tekniskt redundant just nu men infrastrukturen är redo för när 50×70/70×100 återaktiveras via `nano-banana-pro` eller lösare DPI-krav.
 
-- [ ] Kolumner `generated_width_px`, `generated_height_px` på `orders` (fyll i vid `checkGenerationStatus` via `sharp.metadata()`)
-- [ ] Server-helper `computeFormatEligibility(genW, genH, formats, upscaleFactor)` i `src/lib/image-processing.ts`
-- [ ] `FormatPicker` uppdaterad: disabled-state, grön/gul/röd badges, tooltip med förklaring
-- [ ] `createCheckoutSession` validerar server-side att vald format är eligible (defense in depth)
-- [ ] Om alla format faller i röd zon: blockera checkout helt, visa uppmaning att ladda upp större bild
-- [ ] i18n-nycklar i `messages/sv.json` + `en.json` (errors + shop)
+- [x] Migration `00020_generated_dimensions.sql` — `generated_width_px` + `generated_height_px` integer-kolumner på `orders`, fyllda via `sharp.metadata()` i `checkGenerationStatus` (probe-fallback till `null` loggas via `captureServerError`, blockar inte flödet)
+- [x] `src/lib/format-eligibility.ts` — pure, client+server-safe: `targetDpiForLongestCm` (300/200/150 per tryckeri-spec), `computeFormatEligibility` (grade grön/gul/röd mot 80 %-tröskel), `hasAnyEligibleFormat`. `DEFAULT_ELIGIBILITY_UPSCALE_FACTOR=4` matchar `DEFAULT_UPSCALE_FACTOR` i trigger-upscale
+- [x] `GenerationStatusData` utökad med `generatedWidthPx`/`generatedHeightPx` (även på "already generated"-snabbvägen så sidreload fungerar)
+- [x] `FormatPicker` — ny valfri `eligibility`-prop, QualityBadge-komponent (bg-success/warning/destructive-tokens), disabled-state på röda format, native `title`-tooltip via i18n, `aria-disabled` för a11y
+- [x] `generation-result.tsx` — memoiserad eligibility, auto-deselect om vald format faller i röd zon efter att dims resolvar, `LowResolutionBlock` empty state (dölj rabattfält + checkout-knappar + simulate-knapp när alla format är röda)
+- [x] `create-flow.tsx` + `art-preview.tsx` — flödar `generatedWidthPx`/`generatedHeightPx` från `checkGenerationStatus`-response till `GenerationResult` via props, rensas vid reset/re-run
+- [x] `createCheckoutSession` + `simulatePurchase` — `isFormatEligibleForOrder`-guard rejecterar röda format server-side (`errors.formatDpiTooLow`); `fetchFormat` inkluderar nu `width_cm`/`height_cm`. Skippar check gracefully när dims saknas (legacy orders) så inga paying customers låses ute
+- [x] i18n-nycklar — `shop.dpiBadge{Recommended,Acceptable,TooLow}`, `shop.dpiTooltip.{green,yellow,red}`, `shop.dpiAllFormatsTooLow{Title,Body}`, `shop.dpiUploadBigger`, `errors.formatDpiTooLow` (sv + en)
+
+**Exit-kriterium:** ✅ Typecheck rent, ESLint utan nya fel (4 pre-existing i theme-toggle/create-flow/env-preview-gallery/reset-password-button sedan tidigare), `scripts/test-image-pipeline.ts` grönt (16 asserts). Migration pushad till cloud. Defense-in-depth garanterar att ingen forged payload kan sniffa igenom en röd format till Stripe.
 
 ### Öppna frågor (kan lösas parallellt med batcharna)
 

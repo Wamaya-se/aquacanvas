@@ -108,6 +108,17 @@
 		"orientationDetectedHint": "We detected your photo is {orientation} and pre-selected a matching canvas orientation.",
 		"zoomImage": "Click to enlarge",
 		"imageCounter": "{current} of {total}",
+		"dpiBadgeRecommended": "Recommended",
+		"dpiBadgeAcceptable": "OK",
+		"dpiBadgeTooLow": "Low resolution",
+		"dpiTooltip": {
+			"green": "Enough resolution for a crisp print at this size.",
+			"yellow": "Acceptable resolution — slight softness may be visible up close.",
+			"red": "Your image is too small for this size and would print blurry."
+		},
+		"dpiAllFormatsTooLowTitle": "This image is too small for canvas print",
+		"dpiAllFormatsTooLowBody": "Every available size would print blurry at this resolution. Upload a larger photo (at least 1500×1500 px recommended) and we'll reopen checkout.",
+		"dpiUploadBigger": "Upload a larger photo",
 		"meta": {
 			"title": "Create Your Artwork",
 			"description": "Upload a photo and transform it into stunning art with AI. Choose from watercolor, oil painting, and more styles."
@@ -184,6 +195,7 @@
 		"styleInactive": "This style is not yet available.",
 		"formatNotFound": "Selected print format is not available.",
 		"formatRequired": "Please select a print format before checkout.",
+		"formatDpiTooLow": "This size would print blurry for your photo. Pick a smaller size or upload a sharper image.",
 		"insufficientCredits": "Service temporarily unavailable. Please try again later.",
 		"checkoutFailed": "Failed to start checkout. Please try again.",
 		"orderNotGenerated": "This order is not ready for checkout yet.",

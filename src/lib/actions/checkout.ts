@@ -8,6 +8,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { getStripe } from '@/lib/stripe'
 import { getSiteUrl } from '@/lib/env'
 import { checkoutSchema, guestSessionIdSchema } from '@/validators/order'
+import { computeFormatEligibility } from '@/lib/format-eligibility'
 import type { ActionResult } from '@/types/actions'
 
 type StripeLocale = 'sv' | 'en'
@@ -48,7 +49,9 @@ async function verifyOrderOwnership(
 
 	const { data: order, error: orderError } = await adminDb
 		.from('orders')
-		.select('id, user_id, guest_session_id, status, style_id')
+		.select(
+			'id, user_id, guest_session_id, status, style_id, generated_width_px, generated_height_px',
+		)
 		.eq('id', orderId)
 		.single()
 
@@ -77,11 +80,33 @@ async function fetchFormat(adminDb: ReturnType<typeof createAdminClient>, format
 
 	const { data } = await adminDb
 		.from('print_formats')
-		.select('id, name, price_cents, is_active')
+		.select('id, name, price_cents, is_active, width_cm, height_cm')
 		.eq('id', idParsed.data)
 		.single()
 
 	return data?.is_active ? data : null
+}
+
+/**
+ * Defense-in-depth DPI guard for the checkout flow.
+ *
+ * The UI disables red formats already, but a forged payload could still
+ * pin a selection we know will print blurry. When AI dimensions are
+ * missing (legacy orders, sharp probe failed) we skip the check so we
+ * never lock a paying customer out based on incomplete data — eligibility
+ * badges already warn them in-flow.
+ */
+function isFormatEligibleForOrder(
+	order: { generated_width_px: number | null; generated_height_px: number | null },
+	format: { width_cm: number; height_cm: number },
+): boolean {
+	if (!order.generated_width_px || !order.generated_height_px) return true
+	const { grade } = computeFormatEligibility(
+		order.generated_width_px,
+		order.generated_height_px,
+		{ widthCm: format.width_cm, heightCm: format.height_cm },
+	)
+	return grade !== 'red'
 }
 
 export async function createCheckoutSession(
@@ -125,6 +150,10 @@ export async function createCheckoutSession(
 
 	if (!format) {
 		return { success: false, error: 'errors.formatNotFound' }
+	}
+
+	if (!isFormatEligibleForOrder(order, format)) {
+		return { success: false, error: 'errors.formatDpiTooLow' }
 	}
 
 	const totalPriceCents = style.price_cents + format.price_cents
@@ -251,6 +280,10 @@ export async function simulatePurchase(
 			.single(),
 		fetchFormat(adminDb, formatId),
 	])
+
+	if (format && !isFormatEligibleForOrder(order, format)) {
+		return { success: false, error: 'errors.formatDpiTooLow' }
+	}
 
 	const stylePriceCents = styleResult.data?.price_cents ?? 34900
 	const formatPriceCents = format?.price_cents ?? 0

@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from '@/i18n/navigation'
 import Image from 'next/image'
-import { Download, ShoppingBag, RotateCcw, FlaskConical, Loader2, Tag, Expand } from 'lucide-react'
+import { Download, ShoppingBag, RotateCcw, FlaskConical, Loader2, Tag, Expand, AlertTriangle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,11 @@ import { useActionError } from '@/hooks/use-action-error'
 import { FormatPicker, type FormatOption } from '@/components/shop/format-picker'
 import { EnvironmentPreviewGallery } from '@/components/shop/environment-preview-gallery'
 import { ImageLightbox } from '@/components/shop/image-lightbox'
+import {
+	computeFormatEligibility,
+	hasAnyEligibleFormat,
+	type FormatEligibility,
+} from '@/lib/format-eligibility'
 import type { OrientationValue } from '@/validators/order'
 
 interface GenerationResultProps {
@@ -22,6 +27,8 @@ interface GenerationResultProps {
 	formats: FormatOption[]
 	selectedOrientation: OrientationValue | null
 	stylePriceCents: number
+	generatedWidthPx: number | null
+	generatedHeightPx: number | null
 	testMode?: boolean
 	onReset: () => void
 }
@@ -39,6 +46,8 @@ export function GenerationResult({
 	formats,
 	selectedOrientation,
 	stylePriceCents,
+	generatedWidthPx,
+	generatedHeightPx,
 	testMode,
 	onReset,
 }: GenerationResultProps) {
@@ -66,6 +75,38 @@ export function GenerationResult({
 				: formats,
 		[formats, selectedOrientation],
 	)
+
+	// Compute DPI eligibility once per (formats, dims) pair. When the AI
+	// dimensions weren't captured (e.g. sharp probe failed server-side, or
+	// we're on a legacy order reopened via session storage) we fall back to
+	// `undefined` which keeps every format selectable — `createCheckoutSession`
+	// still guards server-side, so the worst case is slightly optimistic UI.
+	const eligibility = useMemo<Record<string, FormatEligibility> | undefined>(() => {
+		if (!generatedWidthPx || !generatedHeightPx) return undefined
+		const map: Record<string, FormatEligibility> = {}
+		for (const f of filteredFormats) {
+			map[f.id] = computeFormatEligibility(generatedWidthPx, generatedHeightPx, {
+				widthCm: f.widthCm,
+				heightCm: f.heightCm,
+			})
+		}
+		return map
+	}, [filteredFormats, generatedWidthPx, generatedHeightPx])
+
+	const allFormatsBlocked =
+		eligibility !== undefined &&
+		filteredFormats.length > 0 &&
+		!hasAnyEligibleFormat(eligibility)
+
+	// If the selected format is blocked after eligibility resolves (race:
+	// user selected before dims arrived), drop the selection so the empty
+	// state / checkout button reflects reality.
+	const effectiveSelectedFormatId = useMemo(() => {
+		if (!selectedFormatId) return null
+		if (!eligibility) return selectedFormatId
+		const grade = eligibility[selectedFormatId]?.grade
+		return grade === 'red' ? null : selectedFormatId
+	}, [selectedFormatId, eligibility])
 
 	const baseImages = useMemo<LightboxImage[]>(() => {
 		const images: LightboxImage[] = []
@@ -109,7 +150,7 @@ export function GenerationResult({
 	)
 
 	async function handleCheckout() {
-		if (!selectedFormatId) {
+		if (!effectiveSelectedFormatId) {
 			setError(translateError('errors.formatRequired'))
 			return
 		}
@@ -121,7 +162,7 @@ export function GenerationResult({
 			orderId,
 			guestSessionId,
 			discountCode || undefined,
-			selectedFormatId,
+			effectiveSelectedFormatId,
 		)
 
 		if (!result.success) {
@@ -134,7 +175,7 @@ export function GenerationResult({
 	}
 
 	async function handleSimulate() {
-		if (!selectedFormatId) {
+		if (!effectiveSelectedFormatId) {
 			setError(translateError('errors.formatRequired'))
 			return
 		}
@@ -142,7 +183,7 @@ export function GenerationResult({
 		setSimulateLoading(true)
 		setError(null)
 
-		const result = await simulatePurchase(orderId, guestSessionId, selectedFormatId)
+		const result = await simulatePurchase(orderId, guestSessionId, effectiveSelectedFormatId)
 
 		if (!result.success) {
 			setError(translateError(result.error))
@@ -195,16 +236,21 @@ export function GenerationResult({
 					<h2 className="font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">
 						{t('chooseFormat')}
 					</h2>
-					<FormatPicker
-						formats={filteredFormats}
-						selected={selectedFormatId}
-						onSelect={setSelectedFormatId}
-						stylePriceCents={stylePriceCents}
-					/>
+					{allFormatsBlocked ? (
+						<LowResolutionBlock onReset={onReset} />
+					) : (
+						<FormatPicker
+							formats={filteredFormats}
+							selected={effectiveSelectedFormatId}
+							onSelect={setSelectedFormatId}
+							stylePriceCents={stylePriceCents}
+							eligibility={eligibility}
+						/>
+					)}
 				</div>
 			)}
 
-			{!testMode && (
+			{!testMode && !allFormatsBlocked && (
 				<div className="flex items-center gap-2">
 					<Tag className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 					<Input
@@ -224,7 +270,7 @@ export function GenerationResult({
 				</p>
 			)}
 
-			{!testMode && (
+			{!testMode && !allFormatsBlocked && (
 				<>
 					<div className="flex flex-col gap-3 sm:flex-row">
 						<Button
@@ -247,7 +293,7 @@ export function GenerationResult({
 							variant="secondary"
 							size="lg"
 							className="flex-1"
-							disabled={checkoutLoading || !selectedFormatId}
+							disabled={checkoutLoading || !effectiveSelectedFormatId}
 							onClick={handleCheckout}
 						>
 							{checkoutLoading ? (
@@ -264,7 +310,7 @@ export function GenerationResult({
 							variant="outline"
 							size="lg"
 							className="w-full border-dashed border-warning/50 text-warning hover:bg-warning/10"
-							disabled={simulateLoading || !selectedFormatId}
+							disabled={simulateLoading || !effectiveSelectedFormatId}
 							onClick={handleSimulate}
 						>
 							{simulateLoading ? (
@@ -294,6 +340,34 @@ export function GenerationResult({
 				index={lightboxIndex}
 				onClose={() => setLightboxOpen(false)}
 			/>
+		</div>
+	)
+}
+
+interface LowResolutionBlockProps {
+	onReset: () => void
+}
+
+function LowResolutionBlock({ onReset }: LowResolutionBlockProps) {
+	const tShop = useTranslations('shop')
+
+	return (
+		<div
+			role="alert"
+			className="flex flex-col items-center gap-4 rounded-xl bg-warning/10 px-6 py-8 text-center"
+		>
+			<AlertTriangle className="size-8 text-warning" aria-hidden="true" />
+			<div className="flex flex-col gap-2">
+				<p className="font-heading text-base font-semibold tracking-[-0.03em] text-foreground">
+					{tShop('dpiAllFormatsTooLowTitle')}
+				</p>
+				<p className="max-w-sm font-sans text-sm text-muted-foreground">
+					{tShop('dpiAllFormatsTooLowBody')}
+				</p>
+			</div>
+			<Button variant="secondary" size="sm" onClick={onReset}>
+				{tShop('dpiUploadBigger')}
+			</Button>
 		</div>
 	)
 }

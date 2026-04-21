@@ -26,6 +26,8 @@ interface ArtPreviewProps {
 	previewUrl: string | null
 	generationState: GenerationState
 	generatedImageUrl: string | null
+	generatedWidthPx: number | null
+	generatedHeightPx: number | null
 	errorMessage: string | null
 	errorMeta?: Record<string, unknown> | null
 	orderId: string | null
@@ -53,6 +55,8 @@ export function ArtPreview({
 	previewUrl,
 	generationState,
 	generatedImageUrl,
+	generatedWidthPx,
+	generatedHeightPx,
 	errorMessage,
 	errorMeta,
 	orderId,
@@ -80,6 +84,8 @@ export function ArtPreview({
 				formats={formats}
 				selectedOrientation={selectedOrientation}
 				stylePriceCents={stylePriceCents}
+				generatedWidthPx={generatedWidthPx}
+				generatedHeightPx={generatedHeightPx}
 				testMode={testMode}
 				onReset={onReset}
 			/>

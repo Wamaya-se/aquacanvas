@@ -5,7 +5,7 @@ import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { createImageTask, getTaskStatus, uploadFileToKie } from '@/lib/ai'
-import { normalizeInput } from '@/lib/image-processing'
+import { normalizeInput, probeDimensions } from '@/lib/image-processing'
 import { generateArtworkSchema, checkStatusSchema, guestSessionIdSchema, validateFile } from '@/validators/order'
 import type { OrientationValue } from '@/validators/order'
 import { checkRateLimit } from '@/lib/rate-limit'
@@ -33,6 +33,8 @@ export interface GenerateArtworkData {
 export interface GenerationStatusData {
 	state: KieTaskState
 	generatedImageUrl: string | null
+	generatedWidthPx: number | null
+	generatedHeightPx: number | null
 }
 
 async function getClientIp(): Promise<string> {
@@ -240,7 +242,9 @@ export async function checkGenerationStatus(
 
 	const { data: order, error: orderError } = await adminDb
 		.from('orders')
-		.select('id, user_id, guest_session_id, status')
+		.select(
+			'id, user_id, guest_session_id, status, generated_width_px, generated_height_px',
+		)
 		.eq('id', parsed.data.orderId)
 		.single()
 
@@ -273,6 +277,8 @@ export async function checkGenerationStatus(
 			data: {
 				state: 'success',
 				generatedImageUrl: url,
+				generatedWidthPx: order.generated_width_px,
+				generatedHeightPx: order.generated_height_px,
 			},
 		}
 	}
@@ -291,14 +297,15 @@ export async function checkGenerationStatus(
 		try {
 			const imageRes = await fetch(resultUrl)
 			if (!imageRes.ok) throw new Error(`Fetch failed: ${imageRes.status}`)
-			const imageBlob = await imageRes.blob()
+			const imageArrayBuffer = await imageRes.arrayBuffer()
+			const imageBuffer = Buffer.from(imageArrayBuffer)
 
 			const storagePrefix = user ? user.id : 'guest'
 			const generatedPath = `${storagePrefix}/generated/${order.id}.png`
 
 			const { error: uploadError } = await adminDb.storage
 				.from('images')
-				.upload(generatedPath, imageBlob, {
+				.upload(generatedPath, imageBuffer, {
 					contentType: 'image/png',
 					upsert: true,
 				})
@@ -306,6 +313,27 @@ export async function checkGenerationStatus(
 			if (uploadError) {
 				console.error('[checkGenerationStatus] upload generated', uploadError)
 				return { success: false, error: 'errors.uploadFailed' }
+			}
+
+			// Capture pixel dimensions of the raw AI output so FormatPicker can
+			// grade DPI eligibility per canvas size and `createCheckoutSession`
+			// can reject formats that would ship blurry. Probe is cheap (sharp
+			// reads headers only) and must not block on failure — fall back to
+			// null so the flow still completes.
+			let generatedWidthPx: number | null = null
+			let generatedHeightPx: number | null = null
+			try {
+				const probed = await probeDimensions(imageBuffer)
+				generatedWidthPx = probed.width
+				generatedHeightPx = probed.height
+			} catch (err) {
+				console.error('[checkGenerationStatus] probeDimensions', err)
+				await captureServerError(err, {
+					action: 'checkGenerationStatus',
+					stage: 'probe_dimensions',
+					orderId: order.id,
+					taskId: parsed.data.taskId,
+				})
 			}
 
 			// Pipeline policy: ask app_settings whether upscaling should run
@@ -321,6 +349,8 @@ export async function checkGenerationStatus(
 				.update({
 					status: 'generated',
 					generated_image_path: generatedPath,
+					generated_width_px: generatedWidthPx,
+					generated_height_px: generatedHeightPx,
 					ai_cost_time_ms: status.costTime,
 					upscale_status: initialUpscaleStatus,
 				})
@@ -367,6 +397,8 @@ export async function checkGenerationStatus(
 				data: {
 					state: 'success',
 					generatedImageUrl: publicUrl,
+					generatedWidthPx,
+					generatedHeightPx,
 				},
 			}
 		} catch (err) {
@@ -399,6 +431,8 @@ export async function checkGenerationStatus(
 			data: {
 				state: 'fail',
 				generatedImageUrl: null,
+				generatedWidthPx: null,
+				generatedHeightPx: null,
 			},
 		}
 	}
@@ -408,6 +442,8 @@ export async function checkGenerationStatus(
 		data: {
 			state: status.state,
 			generatedImageUrl: null,
+			generatedWidthPx: null,
+			generatedHeightPx: null,
 		},
 	}
 }

@@ -57,6 +57,8 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 	const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(
 		testMode ? TEST_IMAGES.generated : null,
 	)
+	const [generatedWidthPx, setGeneratedWidthPx] = useState<number | null>(null)
+	const [generatedHeightPx, setGeneratedHeightPx] = useState<number | null>(null)
 	const [errorMessage, setErrorMessage] = useState<string | null>(null)
 	const [errorMeta, setErrorMeta] = useState<Record<string, unknown> | null>(null)
 	const [orderId, setOrderId] = useState<string | null>(
@@ -111,10 +113,17 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 				setErrorMessage(result.error)
 				return 'done'
 			}
-			const { state, generatedImageUrl: url } = result.data
+			const {
+				state,
+				generatedImageUrl: url,
+				generatedWidthPx: genW,
+				generatedHeightPx: genH,
+			} = result.data
 			if (state === 'success' && url) {
 				setGenerationState('success')
 				setGeneratedImageUrl(url)
+				setGeneratedWidthPx(genW)
+				setGeneratedHeightPx(genH)
 				return 'done'
 			}
 			if (state === 'fail') {
@@ -138,6 +147,8 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 		setErrorMessage(null)
 		setErrorMeta(null)
 		setGeneratedImageUrl(null)
+		setGeneratedWidthPx(null)
+		setGeneratedHeightPx(null)
 		setOrderId(null)
 
 		const formData = new FormData()
@@ -169,6 +180,8 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 		activeTaskRef.current = null
 		setGenerationState('idle')
 		setGeneratedImageUrl(null)
+		setGeneratedWidthPx(null)
+		setGeneratedHeightPx(null)
 		setErrorMessage(null)
 		setErrorMeta(null)
 		setOrderId(null)
@@ -257,6 +270,8 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 				previewUrl={previewUrl}
 				generationState={generationState}
 				generatedImageUrl={generatedImageUrl}
+				generatedWidthPx={generatedWidthPx}
+				generatedHeightPx={generatedHeightPx}
 				errorMessage={errorMessage}
 				errorMeta={errorMeta}
 				orderId={orderId}
