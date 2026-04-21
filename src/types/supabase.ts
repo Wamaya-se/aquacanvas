@@ -228,6 +228,10 @@ export type Database = {
           generated_image_path: string | null
           generated_width_px: number | null
           guest_session_id: string | null
+          hero_mockup_ai_cost_time_ms: number | null
+          hero_mockup_image_path: string | null
+          hero_mockup_status: Database["public"]["Enums"]["preview_status"]
+          hero_mockup_task_id: string | null
           id: string
           locale: string
           orientation: string | null
@@ -257,6 +261,10 @@ export type Database = {
           generated_image_path?: string | null
           generated_width_px?: number | null
           guest_session_id?: string | null
+          hero_mockup_ai_cost_time_ms?: number | null
+          hero_mockup_image_path?: string | null
+          hero_mockup_status?: Database["public"]["Enums"]["preview_status"]
+          hero_mockup_task_id?: string | null
           id?: string
           locale?: string
           orientation?: string | null
@@ -286,6 +294,10 @@ export type Database = {
           generated_image_path?: string | null
           generated_width_px?: number | null
           guest_session_id?: string | null
+          hero_mockup_ai_cost_time_ms?: number | null
+          hero_mockup_image_path?: string | null
+          hero_mockup_status?: Database["public"]["Enums"]["preview_status"]
+          hero_mockup_task_id?: string | null
           id?: string
           locale?: string
           orientation?: string | null

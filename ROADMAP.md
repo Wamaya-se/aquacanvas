@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-21 (Fas 14 Batch F klar — DPI pre-checkout gate: generated_width/height_px på orders, computeFormatEligibility-helper, FormatPicker-badges, checkout-guard) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-21 (Fas 15 Batch A klar — 00021_hero_mockup-migration pushad, 3 masters i Supabase Storage, HERO_MOCKUP_PATHS + orientation-helper redo för Batch B) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** Fas 14 ✅ helt klar. Välj mellan **Fas 13** (email capture, abandoned cart, newsletter, delning) för tillväxt eller **Fas 10** (responsiv polish, performance, rate limit på bildgenerering) för produktionsmognad.
+**Nästa upp:** **Fas 15** — AI-genererad hero-mockup (ersätter CSS-ramen på huvudresultatet med en riktig canvas-på-vägg-mockup via samma Kie-pipeline som miljöbilderna). 5 batchar, börja med Batch A.
 **Parallellt möjligt:** Fas 13 email capture, abandoned cart, newsletter, delning.
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
@@ -452,7 +452,132 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 - [ ] Utvärdera `nano-banana-pro` (2K native) mot `nano-banana-edit`: kostnad/call + kvalitetsjämförelse för era 5 stilar. Om Pro levererar likvärdig kvalitet till rimlig kostnad → byta modell och återaktivera 50×70/70×100.
 - [ ] Följ upp med tryckeriet: absolut minimum-DPI per storlek. Kan 50×70 tryckas @ 170 DPI? 70×100 @ 120 DPI? Det kan låsa upp stora format utan modellbyte.
 - [ ] Smart upscale-factor (1/2/4/8 baserat på behov istället för alltid 4x) — följer-upp-optimering efter Batch E
-- [ ] HEIC-stöd klient-side (`heic2any`) — separat Fas 15 om det blir frekvent kundklagomål
+- [ ] HEIC-stöd klient-side (`heic2any`) — separat fas om det blir frekvent kundklagomål
+
+---
+
+## Fas 15: AI-genererad hero-mockup 🖼️
+
+> **Mål:** Ersätt den CSS-baserade canvasramen på huvudresultatet med en riktig, fotorealistisk canvas-på-vägg-mockup genererad via samma Kie-pipeline (`flux-2/flex-image-to-image`) som miljöbilderna. Kunden ser direkt hur deras verk kommer se ut som fysisk tavla — dramatiskt högre upplevd kvalitet än en CSS-ram.
+> **Bakgrund:** Tre mockup-masterfiler (`mockup-vertical/horizontal/square.jpeg`, 1000×1000 px, canvas på grå betongvägg med lätt perspektiv för vertical/horizontal) valda av designern. Orienteringen (`orders.orientation`: `portrait`/`landscape`/`square`) styr vilken mockup som används; fallback auto-detect från `generated_width_px`/`generated_height_px` om fält saknas.
+> **Beslutade designval:**
+>
+> 1. **Samma Kie-flöde som env-previews** — `createEnvironmentPreviewTask` återanvänds med en av tre mockup-masters som "scen". Prompten är generell "canvas-i-scen" och fungerar både för rum och rena mockups.
+> 2. **Mockup-masters i Supabase Storage** under `hero-mockups/` (konsistens med `environment-scenes/`). Seedas via migration (policy only — filerna laddas upp manuellt via Supabase dashboard eller seed-script eftersom migrations inte kan skicka binärer).
+> 3. **Resultat i Storage** under `hero-mockup-previews/${orderId}.png` (samma namngivning som env-previews).
+> 4. **Parallell generering** — hero-mockup kickar igång direkt när AI-artworken är klar, parallellt med de 3 env-previews. Totalt 4 Kie-calls per order.
+> 5. **Vänlig progress-UI** — delad komponent (`GenerationProgress`) med ett lugnt meddelande + animerad progress bar (tidsbaserat, exponentiell avtagning mot 90 % tills Kie landar). Återanvänds av både `HeroMockup` och `EnvironmentPreviewGallery`.
+> 6. **Fail-fallback:** Retry-knapp (samma UX som env-preview-fel). Ingen fallback till CSS-ramen — om AI inte fungerar ska användaren se det och kunna retrya.
+> 7. **`tryAgain` bevarar hero-mockup** — om användaren genererar om artworken på samma order raderas inte `hero_mockup_*`-fälten (enligt val). Detta innebär att tryAgain i praktiken skapar en ny order (vilket den redan gör) och den nya ordern genererar en ny mockup from scratch.
+> 8. **Download + checkout oförändrade** — nedladdningen pekar fortsatt på `generated_image_path` (raw AI-bild), format-val och Stripe-flöde orörda.
+> 9. **Lightbox visar båda** — mockup-scenen som första slide, raw AI-bild som andra slide (enligt val). Original + env-previews följer efter.
+
+### Batch A — DB-schema & mockup-masters i Storage 🏗️
+
+> **Status:** ✅ Klar (2026-04-21) · **Commit:** pending · **Session-scope:** Migration + storage-setup + regen av Supabase-typer. Inget AI eller UI-arbete. Exit när masters är live i cloud och typer kompilerar.
+
+- [x] Migration `00021_hero_mockup.sql`:
+  - Kolumner på `orders`: `hero_mockup_image_path text`, `hero_mockup_status public.preview_status not null default 'pending'`, `hero_mockup_task_id text`, `hero_mockup_ai_cost_time_ms integer` — med column comments
+  - Storage policy: public read på `hero-mockups/` (masters, depth-1 prefix) och `hero-mockup-previews/` (composites, depth-2 prefix — matchar `{userId|guest}/hero-mockup-previews/{orderId}.png`). Återanvänder `preview_status`-enumet från 00012.
+- [x] `scripts/seed-hero-mockups.ts` — idempotent service-role upload (upsert: true, cacheControl 31536000) av de tre masterfilerna från `public/images/mockup-*.jpeg` till `hero-mockups/`. Körd mot cloud; alla tre URLs svarar 200 OK.
+- [x] `src/types/supabase.ts` — manuellt uppdaterad `orders.Row/Insert/Update` med 4 nya kolumner. `hero_mockup_status` typad som `preview_status` (inte nullable, default `'pending'`). `tsc --noEmit` rent.
+- [x] `src/lib/hero-mockup-scenes.ts` — `HERO_MOCKUP_PATHS: Record<OrientationValue, string>` + `resolveHeroMockupOrientation(orientation, width, height)`-helper som prefererar explicit kolumn och faller tillbaka till pixel-ratio med 5 % tolerans runt 1:1 för square.
+- [x] `npx supabase db push` kört mot cloud-projekt `xinnmqappqywcgzexapg`. Master-URL verifierad via curl (HTTP/2 200, 223 488 B matchar lokal fil).
+
+**Exit-kriterium:** ✅ Migration live i cloud, 3 masters publika på `hero-mockups/mockup-<orientation>.jpeg`, typecheck + ESLint rent, `HERO_MOCKUP_PATHS` + `resolveHeroMockupOrientation` redo att konsumeras av Batch B.
+
+### Batch B — Server actions (`hero-mockup.ts`) 🤖
+
+> **Status:** 🔴 Inte påbörjad · **Session-scope:** Backend-pipeline för generering + polling. Inget UI-arbete. Verifiera manuellt via admin/scripts mot en riktig order.
+
+- [ ] Extrahera `verifyOrderOwnership` från `environment-preview.ts` till delad `src/lib/actions/_order-ownership.ts` (för DRY — båda action-modulerna behöver samma logik)
+- [ ] `src/lib/actions/hero-mockup.ts`:
+  - `generateHeroMockup(orderId, guestSessionId)` — idempotent (skippar om status redan är `processing`/`success`):
+    1. Verify ownership + order-status (`generated`/`paid`/`shipped`)
+    2. Bestäm orientation: `orders.orientation` → fallback `generated_width_px`/`generated_height_px` auto-detect
+    3. Slå upp mockup-masterpath via `HERO_MOCKUP_PATHS[orientation]`
+    4. Hämta master från Supabase Storage → `uploadFileToKie`
+    5. Hämta artwork från `generated_image_path` → `uploadFileToKie`
+    6. `createEnvironmentPreviewTask(artworkUrl, mockupUrl)` (återanvänder default-prompt)
+    7. Uppdatera ordern: `hero_mockup_status='processing'`, `hero_mockup_task_id=<taskId>`
+    8. Returnera `{ status: 'processing', taskId }`
+  - `checkHeroMockupStatus(orderId, guestSessionId)` — idempotent kort-krets vid `success`/`fail`:
+    - Vid `success`: hämta resultat från Kie, ladda upp till `${storagePrefix}/hero-mockup-previews/${orderId}.png`, uppdatera ordern med `hero_mockup_image_path` + `hero_mockup_ai_cost_time_ms`
+    - Vid `fail`: uppdatera status + metadata, returnera fel (klientens retry-knapp triggar ny `generateHeroMockup`)
+    - Vid `processing`/`waiting`/`queuing`/`generating`: returnera oförändrad status
+- [ ] Validators i `src/validators/order.ts`: `generateHeroMockupSchema`, `checkHeroMockupSchema` (bara `orderId` UUID-validering, speglar env-preview-validators)
+- [ ] Error-hantering: `captureServerError` med `{ orderId, taskId, stage }`-tags för varje felkategori (master_fetch, artwork_fetch, kie_upload, task_create, poll, upload_result)
+- [ ] Retry-semantik: klient kan anropa `generateHeroMockup` igen efter ett `fail` — server rensar då `hero_mockup_task_id` + `hero_mockup_image_path` och kör om
+- [ ] Manuell E2E-test mot dev: kör action-par via temporärt script eller admin-panel-knapp, verifiera att `hero_mockup_image_path` blir satt och resultatet är läsbart
+
+**Exit-kriterium:** Pipeline funkar E2E mot en riktig dev-order, resultat syns i Supabase Storage, idempotens + retry verifierade manuellt, typecheck + ESLint rent.
+
+### Batch C — Delad progress-komponent 🎨
+
+> **Status:** 🔴 Inte påbörjad · **Session-scope:** Bygg `GenerationProgress`-komponenten mot statisk dummy-data (Storybook-like i create-flow test-mode). Ingen backend-integration i denna batch. Adoptera den i `EnvironmentPreviewGallery` som smoke-test.
+
+- [ ] `src/components/shop/generation-progress.tsx` — återanvändbar:
+  - Props: `message: string`, `isActive: boolean`, `estimatedDurationMs?: number` (default 25_000), `variant?: 'hero' | 'gallery'` (för layout-variationer)
+  - Tidsbaserad progress: `useEffect` med `requestAnimationFrame`, exponentiell avtagning mot 90 % (`progress = 0.9 * (1 - exp(-elapsed/tau))`). När `isActive` flippar till `false`: snap till 100 % + fade-out
+  - Visuell stil: tunn progress bar i brand-accent-färg, lugn textmeddelande (`font-sans text-sm text-muted-foreground`), subtil shimmer-animation
+  - Reduced-motion: respekterar `prefers-reduced-motion` (statisk bar + bara textändring)
+  - a11y: `role="status"`, `aria-live="polite"`, `aria-valuenow`/`aria-valuemin`/`aria-valuemax` på progress bar
+- [ ] Nya i18n-nycklar i `messages/sv.json` + `messages/en.json` under `shop.progress.*`:
+  - `heroMockupMessage`: "Skapar en förhandsvisning av din canvas…" / "Creating a preview of your canvas…"
+  - `environmentPreviewsMessage`: "Placerar din tavla i olika rum…" / "Placing your artwork in different rooms…"
+- [ ] Adoptera komponenten i `EnvironmentPreviewGallery`: ersätt nuvarande "generatingPreviews" text + spinner med `<GenerationProgress>` när state är `generating`/`processing`. Behåll befintlig per-kort `Loader2` i `PreviewCardSkeleton`/`PreviewCard` (fail-robusthet), men den globala headern får progress-bar-behandling.
+- [ ] Visuell verifiering mot test-mode (`/create` med admin test-mode cookie) — flödet är statiskt där, så vi får en stabil visuell referens
+
+**Exit-kriterium:** Komponent mountar/unmountar stabilt, progress-baren reseter korrekt mellan kör, env-preview-gallery har ny progress-UI, typecheck + ESLint rent, visuell review ok.
+
+### Batch D — HeroMockup-komponent & integration 🖼️
+
+> **Status:** 🔴 Inte påbörjad · **Session-scope:** Koppla ihop allt. Ersätt `CanvasMockup` i `generation-result.tsx` med ny `HeroMockup` som triggar backend + pollar + visar progress → resultat. Full E2E från upload till AI-mockup i lightbox.
+
+- [ ] `src/components/shop/hero-mockup.tsx`:
+  - Props: `orderId`, `guestSessionId`, `orientation: OrientationValue`, `generatedImageUrl` (för fallback om mockup saknas på legacy orders), `existingMockupUrl?: string | null` (från orderstate vid sidreload), `onMockupReady: (url: string) => void`, `onImageClick: () => void`, `testMode?: boolean`
+  - States: `idle` | `generating` | `success` | `fail`
+  - Mount-effekt (`hasStartedRef`): om `existingMockupUrl` finns → direkt `success`; annars `generateHeroMockup` + `startPolling` (samma `usePollingTask`-pattern som env-gallery, `maxAttempts: 40, initialDelay: 4000, maxDelay: 15000, backoff: 1.3`)
+  - `testMode`: visar en statisk mockup-bild från `/images/mockup-<orientation>.jpeg` med `generatedImageUrl` overlayad via samma gamla CSS-frame som placeholder (för att inte behöva starta riktiga Kie-calls i admin-test-mode)
+  - **generating**-state: skeleton-wrapper med mockup-aspect-ratio (portrait 2:3, landscape 3:2, square 1:1) + `<GenerationProgress message={t('progress.heroMockupMessage')}>` overlayad
+  - **success**-state: `<Image src={mockupUrl}>` i klickbar wrapper (hover expand-ikon, keyboard-support) → triggerar `onImageClick`
+  - **fail**-state: retry-knapp med `RefreshCw`-ikon + felmeddelande från `useActionError`
+  - Anropar `onMockupReady(url)` när success så att parent kan spara URL:en till state/sessionStorage
+- [ ] Uppdatera `generation-result.tsx`:
+  - Nya props: `heroMockupUrl: string | null`, `onHeroMockupReady: (url: string) => void`
+  - Ersätt `<CanvasMockup>` med `<HeroMockup>`
+  - `baseImages` array uppdaterad: `[heroMockup?, generated, original?]` → lightbox visar mockup som slide 1
+  - Ta bort den gamla `CanvasMockup`-inline-komponenten (CSS-ram) — inte längre relevant
+- [ ] Uppdatera `create-flow.tsx`:
+  - Håll `heroMockupUrl` i state, hydrera från sessionStorage på reload (samma pattern som `generatedImageUrl`)
+  - Persistera när `onHeroMockupReady` triggas
+  - Rensa vid `onReset`/`tryAgain` (ny order = ingen mockup)
+- [ ] Uppdatera `art-preview.tsx` om behövs — sannolikt bara types-prop-passthrough
+- [ ] i18n-nycklar för HeroMockup-specifika strängar: `shop.heroMockup.generating`, `shop.heroMockup.failed`, `shop.heroMockup.tryAgain`, `shop.heroMockup.alt` (både sv + en)
+- [ ] Verifiera mot dev-order E2E: upload → generera → se progress i ~20s → AI-mockup dyker upp → klicka → lightbox visar mockup + raw + original + env-scener
+- [ ] Admin test-mode: hero-mockup rendrar korrekt statiskt utan Kie-calls
+
+**Exit-kriterium:** Full E2E från create-flow till AI-mockup i produktion-mode, lightbox med korrekt slides-ordning, reload bevarar mockup via sessionStorage, test-mode visar statisk variant, typecheck + ESLint rent.
+
+### Batch E — Polish & slutstädning ✨
+
+> **Status:** 🔴 Inte påbörjad · **Session-scope:** A11y-pass, kostnads-tracking, admin-synlighet, dokumentation. Pre-merge cleanup.
+
+- [ ] Admin orderdetalj (`/admin/orders/[id]`): ny sektion "Hero mockup" med status-badge, task-ID, upscale-tid, öppna-knapp för `hero_mockup_image_path` + manuell retry-knapp (admin-guardad wrapper runt `generateHeroMockup`)
+- [ ] Kostnads-tracking: `hero_mockup_ai_cost_time_ms` loggas i settings-dashboard (utöka `getUpscaleMetrics` eller bygg ny `getHeroMockupMetrics`)
+- [ ] A11y-pass: verifiera `aria-live`-regions, keyboard-nav på retry-knapp, focus-state på mockup-bild, kontraststöd för progress-bar
+- [ ] Uppdatera `TECHSTACK.md` → "Bildflöde"-sektionen med hero-mockup-steget
+- [ ] Uppdatera `DB Schema Status`-raden längst ner i ROADMAP med nya kolumner
+- [ ] Verifiera prod-deploy: ny migration körs, masters finns i cloud storage, env-variabler oförändrade
+- [ ] Ev. flytta delad `verifyOrderOwnership` till bredare shared helper om fler actions kan dra nytta
+
+**Exit-kriterium:** Admin har full insyn i hero-mockup-pipeline, dokumentation uppdaterad, prod-ready. Typecheck + ESLint rent.
+
+### Öppna frågor (kan lösas parallellt)
+
+- [ ] **Kie-promptens kvalitet mot rena mockups** — nuvarande `ENVIRONMENT_PREVIEW_PROMPT` är tränad för "rumsscener med canvas". Mot en minimalistisk mockup (canvas på grå vägg) kan den ibland missa kantdetaljer. Om retry-frekvensen är hög → skriv en dedikerad `HERO_MOCKUP_PROMPT` som är enklare ("place artwork on blank canvas") och byt ut i Batch B.
+- [ ] **Fallback-beteende om Kie är nere länge** — just nu visar vi retry-knapp. Om vi ser många fails i prod → överväg att visa den gamla CSS-ramen som graceful degradation (konfigurerbart via admin-toggle).
+- [ ] **Kostnadsoptimering:** Cacha hero-mockups per `(artwork_hash, orientation)` så att identiska ombeställningar återanvänder samma mockup utan ny Kie-call. Kräver hash-fält på `orders`. Separat optimering efter Batch E.
 
 ---
 
