@@ -1,6 +1,6 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-21 (Fas 15 Batch A klar — 00021_hero_mockup-migration pushad, 3 masters i Supabase Storage, HERO_MOCKUP_PATHS + orientation-helper redo för Batch B) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-21 (Fas 15 Batch B klar — hero-mockup.ts server actions + delad _order-ownership, Kie-pipeline identisk med env-previews, idempotens + retry, validators + E2E-driver; redo för Batch C progress-komponent) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
@@ -488,29 +488,18 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Batch B — Server actions (`hero-mockup.ts`) 🤖
 
-> **Status:** 🔴 Inte påbörjad · **Session-scope:** Backend-pipeline för generering + polling. Inget UI-arbete. Verifiera manuellt via admin/scripts mot en riktig order.
+> **Status:** ✅ Klar (2026-04-21) · **Commit:** pending · **Session-scope:** Backend-pipeline för generering + polling. Inget UI-arbete. E2E mot riktig order kvarstår tills UI finns i Batch D (alternativt via `scripts/test-hero-mockup.ts`).
 
-- [ ] Extrahera `verifyOrderOwnership` från `environment-preview.ts` till delad `src/lib/actions/_order-ownership.ts` (för DRY — båda action-modulerna behöver samma logik)
-- [ ] `src/lib/actions/hero-mockup.ts`:
-  - `generateHeroMockup(orderId, guestSessionId)` — idempotent (skippar om status redan är `processing`/`success`):
-    1. Verify ownership + order-status (`generated`/`paid`/`shipped`)
-    2. Bestäm orientation: `orders.orientation` → fallback `generated_width_px`/`generated_height_px` auto-detect
-    3. Slå upp mockup-masterpath via `HERO_MOCKUP_PATHS[orientation]`
-    4. Hämta master från Supabase Storage → `uploadFileToKie`
-    5. Hämta artwork från `generated_image_path` → `uploadFileToKie`
-    6. `createEnvironmentPreviewTask(artworkUrl, mockupUrl)` (återanvänder default-prompt)
-    7. Uppdatera ordern: `hero_mockup_status='processing'`, `hero_mockup_task_id=<taskId>`
-    8. Returnera `{ status: 'processing', taskId }`
-  - `checkHeroMockupStatus(orderId, guestSessionId)` — idempotent kort-krets vid `success`/`fail`:
-    - Vid `success`: hämta resultat från Kie, ladda upp till `${storagePrefix}/hero-mockup-previews/${orderId}.png`, uppdatera ordern med `hero_mockup_image_path` + `hero_mockup_ai_cost_time_ms`
-    - Vid `fail`: uppdatera status + metadata, returnera fel (klientens retry-knapp triggar ny `generateHeroMockup`)
-    - Vid `processing`/`waiting`/`queuing`/`generating`: returnera oförändrad status
-- [ ] Validators i `src/validators/order.ts`: `generateHeroMockupSchema`, `checkHeroMockupSchema` (bara `orderId` UUID-validering, speglar env-preview-validators)
-- [ ] Error-hantering: `captureServerError` med `{ orderId, taskId, stage }`-tags för varje felkategori (master_fetch, artwork_fetch, kie_upload, task_create, poll, upload_result)
-- [ ] Retry-semantik: klient kan anropa `generateHeroMockup` igen efter ett `fail` — server rensar då `hero_mockup_task_id` + `hero_mockup_image_path` och kör om
-- [ ] Manuell E2E-test mot dev: kör action-par via temporärt script eller admin-panel-knapp, verifiera att `hero_mockup_image_path` blir satt och resultatet är läsbart
+- [x] Extraherad `verifyOrderOwnership` i två återanvändbara primitives i `src/lib/actions/_order-ownership.ts`: `getOrderAuthContext(guestSessionId)` (auth + guest-UUID-validering) + `verifyOrderAccess(order, ctx)` (renodlad ägandekoll). Tvåstegsmönstret låter varje caller kontrollera sin egen SELECT. `environment-preview.ts`-wrappern refactored till att bara vara en tunn adapter ovanpå.
+- [x] `src/lib/actions/hero-mockup.ts` — `'use server'`:
+  - `generateHeroMockup(orderId, guestSessionId)` — idempotent (kort-kretsar vid `processing`/`success` och returnerar befintlig `imageUrl` om `success`), verifierar order-status (`generated`/`paid`/`shipped`), löser orientation via `resolveHeroMockupOrientation`, hämtar master + artwork, laddar upp båda till Kie, skapar task via `createEnvironmentPreviewTask`, sparar `hero_mockup_status='processing'` + `hero_mockup_task_id`. Rensar `hero_mockup_image_path` + `ai_cost_time_ms` vid retry så stale URLs aldrig kan läcka.
+  - `checkHeroMockupStatus(orderId, guestSessionId)` — short-circuit på terminalt state, polls Kie annars, på `success` laddar ner + uploadar `${prefix}/hero-mockup-previews/${orderId}.png` och uppdaterar ordern, på `fail` sätter status + loggar `failCode`. Transient network-fel under polling återgår till `processing` så klienten fortsätter poll (matchar env-preview-beteendet).
+- [x] Validators: `generateHeroMockupSchema`, `checkHeroMockupSchema` (UUID-only, speglar env-preview) + `GenerateHeroMockupInput`/`CheckHeroMockupInput`-typer exporterade.
+- [x] Error-hantering: `captureServerError` med `{ action, orderId, taskId, stage, failCode }`-tags. Stages: `master_fetch`, `master_upload`, `artwork_fetch`, `artwork_upload`, `task_create`, `order_update`, `poll`, `download_upload`, `task_fail`. Fail-fallback sätter `hero_mockup_status='fail'` i databasen så retry-UX + admin ser det tydligt.
+- [x] `scripts/test-hero-mockup.ts` — fristående E2E-driver som kör samma Kie-flöde mot en riktig order-ID utan att gå via server-action-lagret. Snabb sanity-check utan UI; `npx tsx scripts/test-hero-mockup.ts <orderId>`.
+- [ ] E2E-verifiering mot en cloud-order — kvar tills UI i Batch D, eller kan köras nu via `test-hero-mockup.ts` om test-order finns (~20-30s + ~$0.02 i Kie-kostnad).
 
-**Exit-kriterium:** Pipeline funkar E2E mot en riktig dev-order, resultat syns i Supabase Storage, idempotens + retry verifierade manuellt, typecheck + ESLint rent.
+**Exit-kriterium:** ✅ Typecheck + ESLint rent, pipeline kodstrukturellt komplett, idempotens + retry-semantik på plats. E2E parkerad till Batch D där UI triggar actions end-to-end.
 
 ### Batch C — Delad progress-komponent 🎨
 

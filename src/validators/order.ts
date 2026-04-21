@@ -58,8 +58,18 @@ export const checkEnvironmentPreviewsSchema = z.object({
 	orderId: z.string().uuid(),
 })
 
+export const generateHeroMockupSchema = z.object({
+	orderId: z.string().uuid(),
+})
+
+export const checkHeroMockupSchema = z.object({
+	orderId: z.string().uuid(),
+})
+
 export type GenerateArtworkInput = z.infer<typeof generateArtworkSchema>
 export type CheckStatusInput = z.infer<typeof checkStatusSchema>
 export type CheckoutInput = z.infer<typeof checkoutSchema>
 export type GenerateEnvironmentPreviewsInput = z.infer<typeof generateEnvironmentPreviewsSchema>
 export type CheckEnvironmentPreviewsInput = z.infer<typeof checkEnvironmentPreviewsSchema>
+export type GenerateHeroMockupInput = z.infer<typeof generateHeroMockupSchema>
+export type CheckHeroMockupInput = z.infer<typeof checkHeroMockupSchema>

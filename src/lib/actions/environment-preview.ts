@@ -1,6 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
 	createEnvironmentPreviewTask,
@@ -10,11 +9,11 @@ import {
 import {
 	generateEnvironmentPreviewsSchema,
 	checkEnvironmentPreviewsSchema,
-	guestSessionIdSchema,
 } from '@/validators/order'
 import type { ActionResult } from '@/types/actions'
 import type { PreviewStatus } from '@/types/supabase'
 import { getSceneName } from '@/lib/db-helpers'
+import { getOrderAuthContext, verifyOrderAccess } from './_order-ownership'
 
 export interface EnvironmentPreviewItem {
 	id: string
@@ -40,17 +39,9 @@ async function verifyOrderOwnership(
 	| { success: true; order: { id: string; user_id: string | null; guest_session_id: string | null; status: string; generated_image_path: string | null }; storagePrefix: string }
 	| { success: false; error: string }
 > {
-	const supabase = await createClient()
-	const { data: { user } } = await supabase.auth.getUser()
-	const isGuest = !user
-
-	let validGuestId: string | null = null
-	if (isGuest) {
-		const parsedGuestId = guestSessionIdSchema.safeParse(guestSessionId)
-		if (!parsedGuestId.success) {
-			return { success: false, error: 'errors.invalidInput' }
-		}
-		validGuestId = parsedGuestId.data
+	const ctx = await getOrderAuthContext(guestSessionId)
+	if (!ctx.success) {
+		return { success: false, error: ctx.error }
 	}
 
 	const adminDb = createAdminClient()
@@ -61,19 +52,16 @@ async function verifyOrderOwnership(
 		.eq('id', orderId)
 		.single()
 
-	if (orderError || !order) {
+	if (orderError) {
 		return { success: false, error: 'errors.orderNotFound' }
 	}
 
-	if (user && order.user_id !== user.id) {
-		return { success: false, error: 'errors.forbidden' }
-	}
-	if (isGuest && order.guest_session_id !== validGuestId) {
-		return { success: false, error: 'errors.forbidden' }
+	const access = verifyOrderAccess(order, ctx.data)
+	if (!access.success) {
+		return { success: false, error: access.error }
 	}
 
-	const storagePrefix = user ? user.id : 'guest'
-	return { success: true, order, storagePrefix }
+	return { success: true, order, storagePrefix: ctx.data.storagePrefix }
 }
 
 type PreviewFailStage =
