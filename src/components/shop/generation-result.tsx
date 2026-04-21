@@ -11,12 +11,14 @@ import { createCheckoutSession, simulatePurchase } from '@/lib/actions/checkout'
 import { useActionError } from '@/hooks/use-action-error'
 import { FormatPicker, type FormatOption } from '@/components/shop/format-picker'
 import { EnvironmentPreviewGallery } from '@/components/shop/environment-preview-gallery'
+import { HeroMockup } from '@/components/shop/hero-mockup'
 import { ImageLightbox } from '@/components/shop/image-lightbox'
 import {
 	computeFormatEligibility,
 	hasAnyEligibleFormat,
 	type FormatEligibility,
 } from '@/lib/format-eligibility'
+import { resolveHeroMockupOrientation } from '@/lib/hero-mockup-scenes'
 import type { OrientationValue } from '@/validators/order'
 
 interface GenerationResultProps {
@@ -29,8 +31,10 @@ interface GenerationResultProps {
 	stylePriceCents: number
 	generatedWidthPx: number | null
 	generatedHeightPx: number | null
+	heroMockupUrl: string | null
 	testMode?: boolean
 	onReset: () => void
+	onHeroMockupReady: (url: string) => void
 }
 
 interface LightboxImage {
@@ -48,8 +52,10 @@ export function GenerationResult({
 	stylePriceCents,
 	generatedWidthPx,
 	generatedHeightPx,
+	heroMockupUrl,
 	testMode,
 	onReset,
+	onHeroMockupReady,
 }: GenerationResultProps) {
 	const t = useTranslations('shop')
 	const tCheckout = useTranslations('checkout')
@@ -108,14 +114,31 @@ export function GenerationResult({
 		return grade === 'red' ? null : selectedFormatId
 	}, [selectedFormatId, eligibility])
 
+	const heroOrientation = useMemo(
+		() => resolveHeroMockupOrientation(
+			selectedOrientation,
+			generatedWidthPx,
+			generatedHeightPx,
+		),
+		[selectedOrientation, generatedWidthPx, generatedHeightPx],
+	)
+
 	const baseImages = useMemo<LightboxImage[]>(() => {
 		const images: LightboxImage[] = []
+		if (heroMockupUrl) {
+			images.push({ src: heroMockupUrl, alt: t('heroMockupAlt') })
+		}
+		images.push({ src: generatedImageUrl, alt: t('generatedLabel') })
 		if (originalPreviewUrl) {
 			images.push({ src: originalPreviewUrl, alt: t('originalLabel') })
 		}
-		images.push({ src: generatedImageUrl, alt: t('generatedLabel') })
 		return images
-	}, [originalPreviewUrl, generatedImageUrl, t])
+	}, [heroMockupUrl, generatedImageUrl, originalPreviewUrl, t])
+
+	const heroMockupSlideIndex = heroMockupUrl ? 0 : -1
+	const originalSlideIndex = originalPreviewUrl
+		? (heroMockupUrl ? 2 : 1)
+		: -1
 
 	const allSlides = useMemo(
 		() => [...baseImages, ...envPreviewImages].map((img) => ({
@@ -201,12 +224,28 @@ export function GenerationResult({
 			</p>
 
 			<div className="flex flex-col items-center gap-6">
-				<CanvasMockup
-					src={generatedImageUrl}
-					alt={t('generatedPreviewAlt')}
-					hintText={t('zoomImage')}
-					onClick={() => handleImageClick(originalPreviewUrl ? 1 : 0)}
-				/>
+				{heroOrientation ? (
+					<HeroMockup
+						orderId={orderId}
+						guestSessionId={guestSessionId}
+						orientation={heroOrientation}
+						existingMockupUrl={heroMockupUrl}
+						testMode={testMode}
+						onMockupReady={onHeroMockupReady}
+						onImageClick={() =>
+							handleImageClick(
+								heroMockupSlideIndex >= 0 ? heroMockupSlideIndex : 0,
+							)
+						}
+					/>
+				) : (
+					<ClickableImage
+						src={generatedImageUrl}
+						alt={t('generatedPreviewAlt')}
+						hintText={t('zoomImage')}
+						onClick={() => handleImageClick(0)}
+					/>
+				)}
 
 				{originalPreviewUrl && (
 					<div className="flex w-full max-w-xs flex-col items-center gap-2">
@@ -217,7 +256,11 @@ export function GenerationResult({
 							src={originalPreviewUrl}
 							alt={t('uploadedPreviewAlt')}
 							hintText={t('zoomImage')}
-							onClick={() => handleImageClick(0)}
+							onClick={() =>
+								handleImageClick(
+									originalSlideIndex >= 0 ? originalSlideIndex : 0,
+								)
+							}
 						/>
 					</div>
 				)}
@@ -416,73 +459,3 @@ function ClickableImage({ src, alt, hintText, onClick }: ClickableImageProps) {
 	)
 }
 
-interface CanvasMockupProps {
-	src: string
-	alt: string
-	hintText: string
-	onClick: () => void
-}
-
-function CanvasMockup({ src, alt, hintText, onClick }: CanvasMockupProps) {
-	const t = useTranslations('shop')
-
-	return (
-		<div className="flex flex-col items-center gap-3">
-			<div
-				role="button"
-				tabIndex={0}
-				aria-label={hintText}
-				onClick={onClick}
-				onKeyDown={(e) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						e.preventDefault()
-						onClick()
-					}
-				}}
-				className="group relative cursor-pointer transition-transform hover:scale-[1.01] active:scale-[0.99]"
-			>
-				<div className="rounded-sm bg-gradient-to-br from-[#c8a97e] via-[#b8956a] to-[#a07850] p-[6px] shadow-[0_8px_40px_rgba(0,0,0,0.15),0_2px_8px_rgba(0,0,0,0.1)]">
-					<div className="rounded-[1px] bg-gradient-to-br from-[#d4b896] to-[#c0a07a] p-[2px]">
-						<div className="relative overflow-hidden">
-							<Image
-								src={src}
-								alt={alt}
-								width={600}
-								height={600}
-								unoptimized
-								className="block h-auto w-full"
-							/>
-							<div
-								className="pointer-events-none absolute inset-0 opacity-[0.04] mix-blend-multiply"
-								style={{
-									backgroundImage:
-										'repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(0,0,0,0.15) 1px, transparent 2px), repeating-linear-gradient(90deg, transparent, transparent 1px, rgba(0,0,0,0.15) 1px, transparent 2px)',
-									backgroundSize: '3px 3px',
-								}}
-								aria-hidden="true"
-							/>
-						</div>
-					</div>
-				</div>
-
-				<div
-					className="pointer-events-none absolute -bottom-3 left-2 right-2 h-4 rounded-full opacity-20 blur-md"
-					style={{ background: 'radial-gradient(ellipse, rgba(0,0,0,0.4) 0%, transparent 70%)' }}
-					aria-hidden="true"
-				/>
-
-				<div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-					<div className="flex items-center gap-2 rounded-lg bg-black/60 px-3 py-1.5">
-						<Expand className="size-4 text-on-scrim" aria-hidden="true" />
-						<span className="font-sans text-xs font-medium text-on-scrim">
-							{hintText}
-						</span>
-					</div>
-				</div>
-			</div>
-			<p className="font-sans text-sm font-medium text-muted-foreground">
-				{t('generatedLabel')}
-			</p>
-		</div>
-	)
-}

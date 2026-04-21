@@ -59,6 +59,7 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 	)
 	const [generatedWidthPx, setGeneratedWidthPx] = useState<number | null>(null)
 	const [generatedHeightPx, setGeneratedHeightPx] = useState<number | null>(null)
+	const [heroMockupUrl, setHeroMockupUrl] = useState<string | null>(null)
 	const [errorMessage, setErrorMessage] = useState<string | null>(null)
 	const [errorMeta, setErrorMeta] = useState<Record<string, unknown> | null>(null)
 	const [orderId, setOrderId] = useState<string | null>(
@@ -149,6 +150,7 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 		setGeneratedImageUrl(null)
 		setGeneratedWidthPx(null)
 		setGeneratedHeightPx(null)
+		setHeroMockupUrl(null)
 		setOrderId(null)
 
 		const formData = new FormData()
@@ -182,6 +184,7 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 		setGeneratedImageUrl(null)
 		setGeneratedWidthPx(null)
 		setGeneratedHeightPx(null)
+		setHeroMockupUrl(null)
 		setErrorMessage(null)
 		setErrorMeta(null)
 		setOrderId(null)
@@ -272,6 +275,7 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 				generatedImageUrl={generatedImageUrl}
 				generatedWidthPx={generatedWidthPx}
 				generatedHeightPx={generatedHeightPx}
+				heroMockupUrl={heroMockupUrl}
 				errorMessage={errorMessage}
 				errorMeta={errorMeta}
 				orderId={orderId}
@@ -279,6 +283,7 @@ export function CreateFlow({ styles, formats, lockedStyleId, testMode }: CreateF
 				testMode={testMode}
 				onGenerate={handleGenerate}
 				onReset={handleReset}
+				onHeroMockupReady={setHeroMockupUrl}
 			/>
 			</div>
 		</div>

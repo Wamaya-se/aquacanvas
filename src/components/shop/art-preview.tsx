@@ -28,6 +28,7 @@ interface ArtPreviewProps {
 	generatedImageUrl: string | null
 	generatedWidthPx: number | null
 	generatedHeightPx: number | null
+	heroMockupUrl: string | null
 	errorMessage: string | null
 	errorMeta?: Record<string, unknown> | null
 	orderId: string | null
@@ -35,6 +36,7 @@ interface ArtPreviewProps {
 	testMode?: boolean
 	onGenerate: () => void
 	onReset: () => void
+	onHeroMockupReady: (url: string) => void
 }
 
 const SLUG_TO_I18N: Record<string, string> = {
@@ -57,6 +59,7 @@ export function ArtPreview({
 	generatedImageUrl,
 	generatedWidthPx,
 	generatedHeightPx,
+	heroMockupUrl,
 	errorMessage,
 	errorMeta,
 	orderId,
@@ -64,6 +67,7 @@ export function ArtPreview({
 	testMode,
 	onGenerate,
 	onReset,
+	onHeroMockupReady,
 }: ArtPreviewProps) {
 	const tShop = useTranslations('shop')
 	const tStyles = useTranslations('styles')
@@ -86,8 +90,10 @@ export function ArtPreview({
 				stylePriceCents={stylePriceCents}
 				generatedWidthPx={generatedWidthPx}
 				generatedHeightPx={generatedHeightPx}
+				heroMockupUrl={heroMockupUrl}
 				testMode={testMode}
 				onReset={onReset}
+				onHeroMockupReady={onHeroMockupReady}
 			/>
 		)
 	}

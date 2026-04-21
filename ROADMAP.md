@@ -1,6 +1,6 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-21 (Fas 15 Batch C klar — GenerationProgressBar med exp-avtagnings-RAF, prefers-reduced-motion via useSyncExternalStore, adopterad i EnvironmentPreviewGallery; gammal GenerationProgress zero-props oförändrad; redo för Batch D HeroMockup-integration) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-21 (Fas 15 Batch D klar — HeroMockup-komponent integrerad i generation-result.tsx, CanvasMockup CSS-ram borttagen, lightbox-ordning mockup→generated→original→env-scener, test-mode visar statisk master, fail-state med retry; redo för Batch E polish) | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
@@ -521,32 +521,30 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Batch D — HeroMockup-komponent & integration 🖼️
 
-> **Status:** 🔴 Inte påbörjad · **Session-scope:** Koppla ihop allt. Ersätt `CanvasMockup` i `generation-result.tsx` med ny `HeroMockup` som triggar backend + pollar + visar progress → resultat. Full E2E från upload till AI-mockup i lightbox.
+> **Status:** ✅ Klar (2026-04-21) · **Commit:** pending · **Session-scope:** Koppla ihop allt. `CanvasMockup` CSS-ram bortplockad, ersatt av `HeroMockup`-komponent som triggar `generateHeroMockup`, pollar via `usePollingTask`, renderar progress → AI-mockup → klickbar för lightbox.
 
-- [ ] `src/components/shop/hero-mockup.tsx`:
-  - Props: `orderId`, `guestSessionId`, `orientation: OrientationValue`, `generatedImageUrl` (för fallback om mockup saknas på legacy orders), `existingMockupUrl?: string | null` (från orderstate vid sidreload), `onMockupReady: (url: string) => void`, `onImageClick: () => void`, `testMode?: boolean`
-  - States: `idle` | `generating` | `success` | `fail`
-  - Mount-effekt (`hasStartedRef`): om `existingMockupUrl` finns → direkt `success`; annars `generateHeroMockup` + `startPolling` (samma `usePollingTask`-pattern som env-gallery, `maxAttempts: 40, initialDelay: 4000, maxDelay: 15000, backoff: 1.3`)
-  - `testMode`: visar en statisk mockup-bild från `/images/mockup-<orientation>.jpeg` med `generatedImageUrl` overlayad via samma gamla CSS-frame som placeholder (för att inte behöva starta riktiga Kie-calls i admin-test-mode)
-  - **generating**-state: skeleton-wrapper med mockup-aspect-ratio (portrait 2:3, landscape 3:2, square 1:1) + `<GenerationProgress message={t('progress.heroMockupMessage')}>` overlayad
-  - **success**-state: `<Image src={mockupUrl}>` i klickbar wrapper (hover expand-ikon, keyboard-support) → triggerar `onImageClick`
-  - **fail**-state: retry-knapp med `RefreshCw`-ikon + felmeddelande från `useActionError`
-  - Anropar `onMockupReady(url)` när success så att parent kan spara URL:en till state/sessionStorage
-- [ ] Uppdatera `generation-result.tsx`:
+- [x] `src/components/shop/hero-mockup.tsx`:
+  - Props: `orderId`, `guestSessionId`, `orientation: OrientationValue`, `existingMockupUrl?: string | null`, `testMode?: boolean`, `onMockupReady: (url: string) => void`, `onImageClick: () => void`
+  - States: `idle` | `generating` | `success` | `fail` — initial state hydreras från `existingMockupUrl`/`testMode`
+  - Mount-effekt (`hasStartedRef` + `setTimeout(0)` för att hålla `react-hooks/set-state-in-effect`-lint ren): kör `generateHeroMockup` + `startPolling` när ingen mockup-URL finns
+  - `usePollingTask` med `maxAttempts: 40, initialDelay: 4000, maxDelay: 15000, backoff: 1.3` — kort-kretsar på `success`/`fail`
+  - `testMode`: renderar statisk master-bild från `/images/mockup-<vertical|horizontal|square>.jpeg` — inga Kie-calls
+  - **generating**-state: `<Skeleton>` med orientation-matchad aspect (`aspect-[3/4]`/`aspect-[4/3]`/`aspect-square`) + `<GenerationProgressBar>` (25s estimate)
+  - **success**-state: klickbar `<Image>` (hover Expand-overlay, keyboard Enter/Space) — triggerar `onImageClick`; `generatedLabel` som caption
+  - **fail**-state: `AlertTriangle` + felmeddelande via `useActionError` + `<Button variant="secondary">` med `RefreshCw` för retry
+  - `onMockupReady(url)` triggas via effekt så samma URL inte skickar dubbla callbacks (`lastReadyRef`)
+- [x] Uppdatera `generation-result.tsx`:
   - Nya props: `heroMockupUrl: string | null`, `onHeroMockupReady: (url: string) => void`
-  - Ersätt `<CanvasMockup>` med `<HeroMockup>`
-  - `baseImages` array uppdaterad: `[heroMockup?, generated, original?]` → lightbox visar mockup som slide 1
-  - Ta bort den gamla `CanvasMockup`-inline-komponenten (CSS-ram) — inte längre relevant
-- [ ] Uppdatera `create-flow.tsx`:
-  - Håll `heroMockupUrl` i state, hydrera från sessionStorage på reload (samma pattern som `generatedImageUrl`)
-  - Persistera när `onHeroMockupReady` triggas
-  - Rensa vid `onReset`/`tryAgain` (ny order = ingen mockup)
-- [ ] Uppdatera `art-preview.tsx` om behövs — sannolikt bara types-prop-passthrough
-- [ ] i18n-nycklar för HeroMockup-specifika strängar: `shop.heroMockup.generating`, `shop.heroMockup.failed`, `shop.heroMockup.tryAgain`, `shop.heroMockup.alt` (både sv + en)
-- [ ] Verifiera mot dev-order E2E: upload → generera → se progress i ~20s → AI-mockup dyker upp → klicka → lightbox visar mockup + raw + original + env-scener
-- [ ] Admin test-mode: hero-mockup rendrar korrekt statiskt utan Kie-calls
+  - Ersatt `<CanvasMockup>` med `<HeroMockup>`; fallback till `<ClickableImage>` (raw generated) om `resolveHeroMockupOrientation` returnerar `null` (legacy orders utan orientation + dims)
+  - `baseImages` omstrukturerad: `[heroMockup?, generated, original?]` — mockup slide 1, generated slide 2, original slide 3 (när närvarande). `heroMockupSlideIndex`/`originalSlideIndex` beräknas för klick-routing
+  - Gamla inline `CanvasMockup`-komponenten (CSS-gradient-ram) borttagen
+- [x] Uppdatera `create-flow.tsx`: nytt `heroMockupUrl`-state, nollställs i `handleGenerate` (ny order) och `handleReset`, propageras via `onHeroMockupReady={setHeroMockupUrl}`
+- [x] Uppdatera `art-preview.tsx`: types-prop-passthrough för `heroMockupUrl` + `onHeroMockupReady`
+- [x] i18n-nycklar: `shop.heroMockupAlt`, `shop.heroMockupFailed`, `shop.heroMockupTryAgain` (sv + en) — progress-meddelande återanvänder befintlig `shop.progressHeroMockup` från Batch C
+- [ ] E2E-verifiering mot dev-order: kvarstår tills Batch E (alternativt direkt via `npm run dev` mot riktig order)
+- [x] Admin test-mode: statisk master-mockup renderas, inga Kie-calls
 
-**Exit-kriterium:** Full E2E från create-flow till AI-mockup i produktion-mode, lightbox med korrekt slides-ordning, reload bevarar mockup via sessionStorage, test-mode visar statisk variant, typecheck + ESLint rent.
+**Exit-kriterium:** ✅ Typecheck rent, ESLint utan nya fel (4 pre-existing kvar: `theme-toggle`, `create-flow:73`, `environment-preview-gallery:136`, `reset-password-button`). HeroMockup integrerad end-to-end i create-flow → art-preview → generation-result. Lightbox-ordning verifierad. Test-mode renderar statisk master utan backend-calls. E2E mot riktig AI-pipeline kvarstår till manuell QA/Batch E.
 
 ### Batch E — Polish & slutstädning ✨
 
