@@ -3,6 +3,8 @@
 import { Paintbrush } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { Progress } from '@/components/ui/progress'
+import { cn } from '@/lib/utils'
 
 /**
  * Full-block "generating your artwork" state shown while the primary Kie
@@ -139,26 +141,19 @@ export function GenerationProgressBar({
 		<div
 			role="status"
 			aria-live="polite"
-			className={[
+			className={cn(
 				'flex flex-col items-center gap-3 rounded-xl bg-surface-container-high px-6 py-5',
-				className ?? '',
-			].join(' ').trim()}
+				className,
+			)}
 		>
 			<p className="font-sans text-sm font-medium text-foreground">
 				{message}
 			</p>
-			<div
-				role="progressbar"
-				aria-valuemin={0}
-				aria-valuemax={100}
-				aria-valuenow={percent}
-				className="relative h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-surface-container-low"
-			>
-				<div
-					className="h-full rounded-full bg-brand transition-[width] duration-150 ease-linear"
-					style={{ width: `${percent}%` }}
-				/>
-			</div>
+			<Progress
+				value={percent}
+				aria-label={message}
+				className="h-1.5 w-full max-w-sm"
+			/>
 		</div>
 	)
 }
