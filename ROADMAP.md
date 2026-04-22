@@ -1,6 +1,6 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-22 (Fas 15 Batch E klar + i18n-kvalitetskontroll — hero-mockup-pipeline refaktorerad till delad `server-only`-modul, admin-wrappers + `HeroMockupActionButton`, dashboard/settings-metrics, a11y-pass, TECHSTACK + DB-schema-raden uppdaterade; /create polishades — original-bilden visas bara i lightboxen, storleksjämförelsen borttagen; `common.tryAgain` lades till i både `en.json` och `sv.json` (fanns använd i 5 error-boundaries men saknades), `scripts/i18n-audit.mjs` + `npm run i18n:audit` tillades för att fånga framtida `MISSING_MESSAGE`-fel innan de når runtime). | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-22 (Fas 15 prod-deploy verifierad + Fas 13 batchplan definierad — migration `00021_hero_mockup.sql` bekräftad live i cloud via `supabase db push --dry-run`, alla 3 hero-mockup masters i Storage svarar 200, Vercel deploy rent, `npm run i18n:audit` grönt; DPI-indikator i Fas 13 bockad av (redan levererad via Fas 14 Batch F); Fas 13 scope-uppdelad i 5 batchar A–E: email capture → abandoned cart → delning → newsletter → analytics-baseline). | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
@@ -581,11 +581,114 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 - [x] **Email-templates på svenska** — Migration 00015 tillade `locale`-kolumn på `orders` (default `'sv'`, check `('sv','en')`). Webhook läser `locale` från Stripe session-metadata och sparar på order. Templates (`order-confirmation`, `order-shipped`, `admin-order-notification`) refaktorerade till rena string-prop-komponenter; `send.ts` pre-resolvar via `getTranslations({ locale, namespace: 'emails.*' })`. `admin-orders.ts` läser `locale` från order vid shipped-mejl. `i18n/request.ts` uppdaterad att respektera explicit `requestLocale` först (så admin-actions och webhook kan rendera annan locale än `/admin`-default `'en'`). Nya översättningsnycklar i `emails.*`-namespace i både `sv.json` och `en.json`. (2026-04-18)
 - [x] **Kundrecensioner/betyg på produktsidor** — Migration 00016 tillade `product_reviews`-tabell + `review_status`-enum (`pending`/`approved`/`rejected`). RLS: publik läsning av godkända, publik insert med `status='pending'`-tvång, admin full via `is_admin()`. Server Actions: `submitReview` (Zod, rate-limitad via ny `reviewSubmit`-bucket på IP+email, 3/h), `moderateReview` (admin approve/reject/delete + `revalidatePath('/p/[slug]')`), `getPublicReviewStats`. Admin-UI: `/admin/reviews` med statusfilter + moderation-knappar (approve/reject/delete) + sidebar-länk. Publik UI: `ReviewsSection` server-komponent med snittbetyg + lista, `ReviewForm` klientkomponent med interaktiv stjärnväljare och i18n-fel. Product JSON-LD utökat med `aggregateRating` (ratingValue + reviewCount) när godkända omdömen finns — SEO-boost via rich results. Nya i18n-nycklar: `reviews`-namespace (sv + en) + admin `review*`-nycklar. (2026-04-18)
 - [x] **Next.js 16 deprecations åtgärdade** — `src/middleware.ts` omdöpt till `src/proxy.ts` (funktion `middleware` → `proxy`) per Next.js 16 filkonvention (matcher och logik oförändrade; `next-intl`-import kvar på paketets `next-intl/middleware`-export). Sentry-options i `next.config.ts` flyttade: `disableLogger` → `webpack.treeshake.removeDebugLogging`, `automaticVercelMonitors` → `webpack.automaticVercelMonitors`. Verifierat: lint + `tsc --noEmit` grönt; `/`, `/en`, `/login`, `/sitemap.xml`, `/robots.txt` svarar 200; `/admin` utan session ger 307 → `/login?redirect=%2Fadmin`. (2026-04-20)
-- [ ] E-post-capture innan generering (för abandoned cart + lead gen)
-- [ ] Abandoned cart e-post-sekvens (Resend + cron / Supabase Edge Function)
-- [ ] Delningsfunktion: dela genererat verk på sociala medier (med dynamisk OG-bild)
-- [ ] Newsletter-signup (footer + post-purchase)
-- [ ] DPI/kvalitetsindikator vid formatval (höjd från Fas 11)
+- [ ] E-post-capture innan generering (för abandoned cart + lead gen) — se **Batch A** nedan
+- [ ] Abandoned cart e-post-sekvens (Resend + cron / Supabase Edge Function) — se **Batch B** nedan
+- [ ] Delningsfunktion: dela genererat verk på sociala medier (med dynamisk OG-bild) — se **Batch C** nedan
+- [ ] Newsletter-signup (footer + post-purchase) — se **Batch D** nedan
+- [x] DPI/kvalitetsindikator vid formatval — levererat via **Fas 14 Batch F** (grön/gul/röd QualityBadge i `FormatPicker` + `LowResolutionBlock` + server-side `isFormatEligibleForOrder`-guard)
+
+### Fas 13 — Tillväxt & konvertering (batchplan)
+
+> **Arbetsregel:** En batch = en fokuserad session = en commit. Sekvensering: A → B (B beror på A), C + D oberoende, E valfri parallell.
+
+#### Batch A — Email capture + consent 📧
+
+> **Status:** 🟦 Planerad · **Beroende:** — · **Mål:** Fånga kundens e-post *innan* AI-generering så vi har kontaktpunkt för Batch B + framtida marknadsföring. Varje generation → 1 lead (idag tappar vi majoriteten som inte slutför checkout).
+
+- [ ] Migration `00022_order_email_capture.sql`:
+  - `orders.email_captured_at timestamptz` (skiljer "kund gav email" från "Stripe fyllde i det")
+  - `orders.marketing_consent boolean default false` (GDPR — separat bock för newsletter-opt-in)
+- [ ] Zod-validator `captureOrderEmailSchema` (email + marketing_consent + guestSessionId)
+- [ ] Server Action `captureOrderEmail(orderId, email, consent)` — ägande-verifiering via befintlig `_order-ownership.ts`-helper
+- [ ] `src/components/shop/email-capture-modal.tsx` (Shadcn Dialog):
+  - Triggas i `CreateFlow` när kund klickar "Generera" *innan* `generateArtwork` körs
+  - Obligatoriskt email (Zod), valfri marketing-consent-checkbox med länk till `/privacy`
+  - "Skip"-länk tillåten (legalt krav + test-mode) som ghost-link
+  - `localStorage`-flag `ac_email_captured` → visas bara en gång per session
+- [ ] i18n: `shop.emailCapture.*` (title, description, emailLabel, consentLabel, privacyLink, submit, skip) — sv + en
+- [ ] Integration i `create-flow.tsx` innan `handleGenerate`
+- [ ] Admin dashboard-kort: "Emails captured (7d)" + conversion rate till paid order
+- [ ] i18n-audit + typecheck + ESLint rent
+
+**Exit-kriterium:** Nya orders får `email_captured_at` satt, GDPR-consent sparas separat, modal dyker upp i båda locales, test-mode skippar modal.
+
+#### Batch B — Abandoned cart-sekvens 🛒
+
+> **Status:** 🟦 Planerad · **Beroende:** Batch A · **Mål:** Automatiskt mejla kunder som genererat ett verk men inte slutfört checkout inom ~1h. Industry recovery rate 10–15 %.
+
+- [ ] Migration `00023_abandoned_cart.sql`:
+  - `orders.abandoned_email_sent_at timestamptz`
+  - `orders.unsubscribe_token text unique` (random token per order)
+  - Tabell `email_unsubscribes (email text pk, unsubscribed_at, reason)` — global opt-out
+- [ ] Supabase Edge Function `abandoned-cart` (pg-cron var 15:e minut):
+  - SELECT orders WHERE `status='generated'` AND `email_captured_at < now() - interval '1 hour'` AND `abandoned_email_sent_at IS NULL` AND `customer_email NOT IN email_unsubscribes`
+  - Max 50 per tick (safety)
+- [ ] React Email-template `emails/abandoned-cart.tsx` — återanvänder `send.ts`-pipeline + `orders.locale` för sv/en
+- [ ] Recovery-länk: `/create?resume={orderId}&token={unsubscribe_token}` — create-flow pre-fillar från existing order
+- [ ] `/unsubscribe/[token]` route handler — sätter `email_unsubscribes` + redirect till bekräftelse
+- [ ] Admin-toggle (`app_settings.abandoned_cart_enabled`) + metrics-kort på dashboard (sent / recovered / unsubscribe-rate, 7d)
+- [ ] i18n: `emails.abandonedCart.*` + `pages.unsubscribe.*`
+
+**Exit-kriterium:** Edge function triggas av pg-cron, mejl skickas bara en gång per order, unsubscribe-länken fungerar + respekteras, admin kan pausa, metrics visas på dashboard.
+
+#### Batch C — Delningsfunktion med dynamisk OG-bild 🔗
+
+> **Status:** 🟦 Planerad · **Beroende:** — (oberoende av A/B) · **Mål:** Kunder delar sin genererade tavla på sociala medier med vacker preview-kort. Viral loop + gratis marknadsföring.
+
+- [ ] Publik route `src/app/(marketing)/share/[orderId]/page.tsx`:
+  - Visar hero-mockup + stilnamn (INGA känsliga fält: ingen email, inget original-foto)
+  - CTA: "Skapa din egen tavla" → `/create?ref=share`
+  - `buildMetadata` med dynamisk titel + OG-bild
+- [ ] `src/app/(marketing)/share/[orderId]/opengraph-image.tsx` via `next/og`:
+  - 1200×630 composite: hero-mockup till vänster + "Aquacanvas" brand + stilnamn + tagline
+  - Edge runtime, cacheable 1 år (orderId immutable)
+- [ ] `src/components/shop/share-buttons.tsx`:
+  - Native Web Share API (mobile-first) + fallback till explicit knappar
+  - Kopiera länk (Clipboard API) + toast
+  - X/Twitter, Facebook, Pinterest via `intent`-URLs (inga SDK:er)
+- [ ] Integration i `GenerationResult` (sekundär CTA under checkout-knapp) + `/order/success`-sidan
+- [ ] Opt-in: `orders.shareable boolean default false` — GDPR-säkert, kund måste aktivt välja att dela
+- [ ] Migration `00024_share_opt_in.sql` för `shareable`-kolumnen
+- [ ] i18n: `shop.share.*` (label, copyLink, copied, shareOn, enableSharing)
+- [ ] Tracking: `?ref=share` i `/create` → mäta attribution i Batch E eller enkel counter
+
+**Exit-kriterium:** OG-bilden renderar korrekt på Twitter Card validator + Facebook debugger, delningsknappar fungerar på mobile + desktop, `/share/[orderId]` är bara åtkomlig när `orders.shareable=true`.
+
+#### Batch D — Newsletter-signup 📬
+
+> **Status:** 🟦 Planerad · **Beroende:** — (oberoende av A/B/C, delar unsubscribe-flöde med B) · **Mål:** Long-game retention. Bygga e-postlista för återkommande kunder + säsongskampanjer (mors dag, jul).
+
+- [ ] Migration `00025_newsletter.sql`:
+  - Tabell `newsletter_subscribers (id, email unique, locale, source, confirmed_at, confirm_token, unsubscribe_token, created_at)` — double-opt-in via `confirmed_at`
+  - RLS: admin full, anon insert-only, public ingen SELECT
+- [ ] Server Actions:
+  - `subscribeNewsletter(email, locale, source)` — rate-limitad (`newsletterSubscribe`-bucket, 3/h per IP), skickar confirm-mejl
+  - `confirmSubscription(token)` — public route handler
+  - `unsubscribeNewsletter(token)` — delar `/unsubscribe/[token]`-flöde med Batch B
+- [ ] `src/components/shared/newsletter-form.tsx`:
+  - Footer-version (email + submit inline)
+  - Post-purchase-version (checkbox på success-sidan + auto-subscribe om Batch A-consent=true)
+- [ ] Emails: `emails/newsletter-confirm.tsx` + `emails/newsletter-welcome.tsx` (sv + en)
+- [ ] Admin `/admin/newsletter` — lista med filter (confirmed/pending), export CSV, manuell unsubscribe
+- [ ] Sidebar-länk "Newsletter" + admin i18n-nycklar
+- [ ] i18n: `footer.newsletter.*`, `pages.newsletterConfirm.*`, `emails.newsletter.*`, admin `newsletter*`
+
+**Exit-kriterium:** Double-opt-in-flöde komplett (email → confirm-länk → welcome-mejl), admin kan exportera lista, unsubscribe-link fungerar, rate limiting skyddar mot spam.
+
+#### Batch E (bonus) — Analytics-baseline 📊
+
+> **Status:** 🟦 Planerad · **Beroende:** — (kan köras parallellt eller sist) · **Mål:** Mäta impact av A–D. Utan detta flyger vi blint efter lanseringen.
+
+- [ ] Migration `00026_funnel_events.sql` — `funnel_events (id, session_id, order_id?, event text, locale, referrer, metadata jsonb, created_at)`
+- [ ] `trackFunnelEvent` server action (fire-and-forget via `after()`)
+- [ ] Tracked events: `create_opened`, `email_captured`, `generation_started`, `generation_succeeded`, `checkout_started`, `checkout_completed`, `share_clicked`, `newsletter_subscribed`, `abandoned_email_sent`, `abandoned_email_recovered`
+- [ ] Admin `/admin/analytics`:
+  - Funnel-visualisering (dropoff per steg, 7d/30d)
+  - Top referrers (ref-param-aggregat)
+  - Conversion rate email→paid + abandoned cart-recovery-rate
+- [ ] Ingen cookie-consent behöver läggas till (first-party, anonymiserat session_id, ingen PII utöver befintlig order-koppling)
+
+**Exit-kriterium:** Full funnel synlig i admin, events skrivs till DB utan att blockera UI, admin kan segmentera per locale.
 
 ### Admin & operations
 
