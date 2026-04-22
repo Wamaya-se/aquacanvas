@@ -4,7 +4,7 @@
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** **Fas 13** — email capture, abandoned cart, newsletter, delning (Fas 15 komplett: hero-mockup-pipeline prod-ready pending deploy-verifiering).
+**Nästa upp:** **Fas 13** — email capture, abandoned cart, newsletter, delning (Fas 15 komplett + prod-deploy verifierad 2026-04-22).
 **Parallellt möjligt:** Fas 13 email capture, abandoned cart, newsletter, delning.
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
@@ -558,7 +558,7 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 - [x] A11y-pass: `aria-busy="true"` på hero-mockup generating state (Skeleton markerad `aria-hidden`), `focus-visible:ring-2 ring-brand`-stil på klickbara mockup/artwork-bilder i `HeroMockup` + `ClickableImage`. `GenerationProgressBar` hade redan `role="status"` + `aria-live="polite"`.
 - [x] `TECHSTACK.md` "Bildflöde"-sektionen utökad med ett nytt steg "3. Hero-mockup + rum-previews" (fil-referenser, Storage-paths, status-fält) och Observability-punkterna utökade med hero-mockup-metrics + `HeroMockupActionButton`.
 - [x] `DB Schema Status`-raden uppdaterad med `hero_mockup_image_path/status/task_id/ai_cost_time_ms`, `generated_width_px/height_px` och `upscale_enabled` / `environment_previews_enabled` feature-flags.
-- [ ] Verifiera prod-deploy (manuell checkpunkt): ny migration körd, masters finns i cloud storage, env-variabler oförändrade — parkerat tills deploy körs.
+- [x] Verifiera prod-deploy (2026-04-22): `supabase db push --dry-run` = "Remote database is up to date" (00021 live), alla 3 masters i `hero-mockups/` svarar HTTP 200, Vercel `/` + `/en` svarar 200, `npm run i18n:audit` + `tsc --noEmit` rent.
 - [ ] Ev. flytta delad `verifyOrderOwnership` till bredare shared helper om fler actions kan dra nytta (ej blockerande — skippad).
 
 **Exit-kriterium:** ✅ Typecheck + ESLint rent, admin har full insyn i hero-mockup-pipeline via dashboard + settings + order-detalj, retry-knappar gör samma sak som upscale-equivalenten, dokumentation speglar det nya flödet. Pre-merge cleanup komplett.
