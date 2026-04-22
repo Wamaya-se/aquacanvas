@@ -16,6 +16,19 @@ export type UpscaleTrigger = z.infer<typeof upscaleTriggerSchema>
 export const DEFAULT_UPSCALE_TRIGGER: UpscaleTrigger = 'post_checkout'
 
 /**
+ * Feature flags stored in `app_settings` for runtime-togglable pipeline stages.
+ *
+ * Both default to `true` (enabled) so production keeps its current behaviour
+ * on fresh deploys. Admin can pause expensive stages (Topaz upscale, Kie.ai
+ * environment previews) during testing / incident response without requiring
+ * a redeploy or code change.
+ */
+export const featureFlagSchema = z.boolean()
+
+export const DEFAULT_UPSCALE_ENABLED = true
+export const DEFAULT_ENVIRONMENT_PREVIEWS_ENABLED = true
+
+/**
  * Input shape for manual admin-triggered upscale operations.
  * Order ID is validated as UUID to prevent path traversal / injection in
  * Storage paths and DB selects.

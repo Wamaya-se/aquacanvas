@@ -7,6 +7,9 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import {
 	DEFAULT_UPSCALE_TRIGGER,
+	DEFAULT_UPSCALE_ENABLED,
+	DEFAULT_ENVIRONMENT_PREVIEWS_ENABLED,
+	featureFlagSchema,
 	upscaleTriggerSchema,
 	type UpscaleTrigger,
 } from '@/validators/admin'
@@ -84,6 +87,8 @@ export async function getRateLimitBypassEnabled(): Promise<boolean> {
 }
 
 const UPSCALE_TRIGGER_KEY = 'upscale_trigger'
+const UPSCALE_ENABLED_KEY = 'upscale_enabled'
+const ENVIRONMENT_PREVIEWS_ENABLED_KEY = 'environment_previews_enabled'
 
 /**
  * Read the current upscale trigger policy from `app_settings`.
@@ -146,6 +151,105 @@ export async function setUpscaleTrigger(
 
 	revalidatePath('/admin/settings')
 	return { success: true, data: undefined }
+}
+
+/**
+ * Read a boolean feature flag from `app_settings`, falling back to the
+ * provided default on any read / parse error.
+ *
+ * Intended for server-side callers (server actions, webhooks, Route Handlers)
+ * that need a non-throwing, non-blocking flag read. A missing row is treated
+ * as "not yet configured" and resolves to the default value — this keeps the
+ * pipeline behaving as it did before the flag was introduced.
+ */
+async function readFeatureFlag(
+	key: string,
+	defaultValue: boolean,
+): Promise<boolean> {
+	try {
+		const adminDb = createAdminClient()
+		const { data, error } = await adminDb
+			.from('app_settings')
+			.select('value')
+			.eq('key', key)
+			.maybeSingle()
+
+		if (error || !data) return defaultValue
+
+		const parsed = featureFlagSchema.safeParse(data.value)
+		return parsed.success ? parsed.data : defaultValue
+	} catch (err) {
+		console.error(`[readFeatureFlag:${key}]`, err)
+		return defaultValue
+	}
+}
+
+async function writeFeatureFlag(
+	key: string,
+	enabled: boolean,
+): Promise<ActionResult> {
+	const parsed = featureFlagSchema.safeParse(enabled)
+	if (!parsed.success) {
+		return { success: false, error: 'errors.invalidInput' }
+	}
+
+	const adminDb = createAdminClient()
+	const { error } = await adminDb
+		.from('app_settings')
+		.upsert(
+			{ key, value: parsed.data },
+			{ onConflict: 'key' },
+		)
+
+	if (error) {
+		console.error(`[writeFeatureFlag:${key}]`, error)
+		return { success: false, error: 'errors.generic' }
+	}
+
+	revalidatePath('/admin/settings')
+	return { success: true, data: undefined }
+}
+
+/**
+ * Whether Topaz upscale should run at all. When `false`, both the
+ * `post_checkout` (Stripe webhook) and `post_generation` (AI status)
+ * auto-triggers short-circuit with `upscale_status = 'skipped'` instead
+ * of burning Topaz credits. Admin retries from the order detail page
+ * also respect this flag.
+ *
+ * Defaults to `true` so production behaviour is unchanged until admin
+ * explicitly pauses the pipeline from /admin/settings.
+ */
+export async function getUpscaleEnabled(): Promise<boolean> {
+	return readFeatureFlag(UPSCALE_ENABLED_KEY, DEFAULT_UPSCALE_ENABLED)
+}
+
+export async function setUpscaleEnabled(
+	enabled: boolean,
+): Promise<ActionResult> {
+	await requireAdmin()
+	return writeFeatureFlag(UPSCALE_ENABLED_KEY, enabled)
+}
+
+/**
+ * Whether Kie.ai environment-preview (i.e. "room mockup") generation is
+ * allowed. When `false`, `generateEnvironmentPreviews` returns early with
+ * `disabled: true` and the client gallery hides itself — no scene images
+ * are uploaded or Kie tasks created. Useful during Fas 15 hero-mockup
+ * testing when we want to isolate credit spend.
+ */
+export async function getEnvironmentPreviewsEnabled(): Promise<boolean> {
+	return readFeatureFlag(
+		ENVIRONMENT_PREVIEWS_ENABLED_KEY,
+		DEFAULT_ENVIRONMENT_PREVIEWS_ENABLED,
+	)
+}
+
+export async function setEnvironmentPreviewsEnabled(
+	enabled: boolean,
+): Promise<ActionResult> {
+	await requireAdmin()
+	return writeFeatureFlag(ENVIRONMENT_PREVIEWS_ENABLED_KEY, enabled)
 }
 
 export interface UpscaleMetrics {

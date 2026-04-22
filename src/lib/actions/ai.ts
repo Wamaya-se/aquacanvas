@@ -369,10 +369,16 @@ export async function checkGenerationStatus(
 					try {
 						const res = await triggerUpscaleInternal(order.id)
 						if (!res.success) {
-							console.error(
-								`[checkGenerationStatus] post_generation upscale failed for ${order.id}:`,
-								res.error,
-							)
+							if (res.error === 'errors.upscaleDisabled') {
+								console.info(
+									`[checkGenerationStatus] upscale paused by admin for ${order.id}`,
+								)
+							} else {
+								console.error(
+									`[checkGenerationStatus] post_generation upscale failed for ${order.id}:`,
+									res.error,
+								)
+							}
 						}
 					} catch (err) {
 						console.error(

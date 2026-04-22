@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createUpscaleTask, type UpscaleFactor } from '@/lib/ai'
 import { triggerUpscaleSchema } from '@/validators/admin'
 import { captureServerError } from '@/lib/observability'
+import { getUpscaleEnabled } from '@/lib/actions/admin-settings'
 import type { ActionResult } from '@/types/actions'
 import type { UpscaleStatus } from '@/types/supabase'
 
@@ -77,6 +78,22 @@ export async function triggerUpscaleInternal(
 
 	if (!order.generated_image_path) {
 		return { success: false, error: 'errors.artworkNotReady' }
+	}
+
+	// Feature flag: admin may pause Topaz upscale credits during testing.
+	// Marked as `skipped` so the admin UI clearly distinguishes this from
+	// `pending` (not yet triggered) and `fail` (pipeline error). Admin can
+	// manually retry later once the flag is flipped back on.
+	const upscaleEnabled = await getUpscaleEnabled()
+	if (!upscaleEnabled) {
+		if (order.upscale_status !== 'skipped') {
+			await adminDb
+				.from('orders')
+				.update({ upscale_status: 'skipped' satisfies UpscaleStatus })
+				.eq('id', order.id)
+			revalidateOrder(order.id)
+		}
+		return { success: false, error: 'errors.upscaleDisabled' }
 	}
 
 	if (

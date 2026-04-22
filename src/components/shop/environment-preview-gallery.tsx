@@ -39,7 +39,7 @@ const TEST_ENVIRONMENT_PREVIEWS: EnvironmentPreviewItem[] = [
 	},
 ]
 
-type EnvPreviewState = 'idle' | 'generating' | 'done' | 'error'
+type EnvPreviewState = 'idle' | 'generating' | 'done' | 'error' | 'disabled'
 
 interface EnvironmentPreviewGalleryProps {
 	orderId: string
@@ -90,6 +90,11 @@ export function EnvironmentPreviewGallery({
 				setError(result.error)
 				return 'done'
 			}
+			if (result.data.disabled) {
+				setState('disabled')
+				setPreviews([])
+				return 'done'
+			}
 			setPreviews(result.data.previews)
 			if (result.data.allDone) {
 				setState('done')
@@ -111,6 +116,11 @@ export function EnvironmentPreviewGallery({
 		if (!result.success) {
 			setState('error')
 			setError(result.error)
+			return
+		}
+
+		if (result.data.disabled) {
+			setState('disabled')
 			return
 		}
 
@@ -139,6 +149,10 @@ export function EnvironmentPreviewGallery({
 	const hasAnyUsablePreview = previews.some(
 		(p) => p.status === 'success' || p.status === 'processing' || p.status === 'pending',
 	)
+
+	if (state === 'disabled') {
+		return null
+	}
 
 	if (state === 'error' && !hasAnyUsablePreview) {
 		return (

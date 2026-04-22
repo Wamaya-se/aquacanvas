@@ -142,13 +142,16 @@ export function HeroMockup({
 		if (existingMockupUrl) return
 		if (hasStartedRef.current) return
 		hasStartedRef.current = true
-		// Defer one microtask so the synchronous `setState('generating')`
-		// inside `handleGenerate` runs outside the effect body — keeps the
-		// `react-hooks/set-state-in-effect` lint rule happy.
-		const id = setTimeout(() => {
-			void handleGenerate()
-		}, 0)
-		return () => clearTimeout(id)
+		// Call handleGenerate directly (no setTimeout/cleanup) so React
+		// Strict Mode's double-invocation doesn't cancel the pending timer
+		// before the second effect run sees `hasStartedRef.current === true`
+		// and short-circuits — which would leave the component stuck in
+		// `idle` forever. Matches the working pattern in
+		// `EnvironmentPreviewGallery`; the `react-hooks/set-state-in-effect`
+		// warning this produces is the same pre-existing one tracked in the
+		// roadmap and does not affect runtime behaviour.
+		// eslint-disable-next-line react-hooks/set-state-in-effect
+		handleGenerate()
 	}, [testMode, existingMockupUrl, handleGenerate])
 
 	if (state === 'generating') {

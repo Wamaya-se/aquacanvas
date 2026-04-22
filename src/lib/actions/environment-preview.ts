@@ -13,6 +13,7 @@ import {
 import type { ActionResult } from '@/types/actions'
 import type { PreviewStatus } from '@/types/supabase'
 import { getSceneName } from '@/lib/db-helpers'
+import { getEnvironmentPreviewsEnabled } from './admin-settings'
 import { getOrderAuthContext, verifyOrderAccess } from './_order-ownership'
 
 export interface EnvironmentPreviewItem {
@@ -25,11 +26,19 @@ export interface EnvironmentPreviewItem {
 
 export interface GenerateEnvironmentPreviewsData {
 	previews: EnvironmentPreviewItem[]
+	/**
+	 * Set to `true` when the admin feature flag `environment_previews_enabled`
+	 * is off. The client gallery uses this to hide itself entirely instead
+	 * of rendering an error state — pausing previews is an intentional admin
+	 * action, not a failure.
+	 */
+	disabled?: boolean
 }
 
 export interface CheckEnvironmentPreviewsData {
 	previews: EnvironmentPreviewItem[]
 	allDone: boolean
+	disabled?: boolean
 }
 
 async function verifyOrderOwnership(
@@ -88,6 +97,14 @@ export async function generateEnvironmentPreviews(
 	const parsed = generateEnvironmentPreviewsSchema.safeParse({ orderId })
 	if (!parsed.success) {
 		return { success: false, error: 'errors.invalidInput' }
+	}
+
+	// Feature flag: admin may pause environment-preview generation to save
+	// Kie.ai credits during testing. We still run ownership verification
+	// below if the flag is on, but short-circuit here to avoid any DB/storage
+	// work when paused. The client gallery hides itself on `disabled: true`.
+	if (!(await getEnvironmentPreviewsEnabled())) {
+		return { success: true, data: { previews: [], disabled: true } }
 	}
 
 	const ownership = await verifyOrderOwnership(parsed.data.orderId, guestSessionId)
@@ -291,6 +308,16 @@ export async function checkEnvironmentPreviewsStatus(
 	const parsed = checkEnvironmentPreviewsSchema.safeParse({ orderId })
 	if (!parsed.success) {
 		return { success: false, error: 'errors.invalidInput' }
+	}
+
+	// Mirror the feature-flag guard in `generateEnvironmentPreviews` so
+	// polling calls don't thrash the DB when previews are paused mid-flight
+	// (e.g. admin toggled off while a tab was still open).
+	if (!(await getEnvironmentPreviewsEnabled())) {
+		return {
+			success: true,
+			data: { previews: [], allDone: true, disabled: true },
+		}
 	}
 
 	const ownership = await verifyOrderOwnership(parsed.data.orderId, guestSessionId)

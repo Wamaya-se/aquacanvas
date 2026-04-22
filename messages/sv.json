@@ -214,7 +214,8 @@
 		"artworkNotReady": "Ditt konstverk måste vara genererat innan du kan skapa rumspreviews.",
 		"previewsAlreadyGenerated": "Rumspreviews har redan skapats för denna beställning.",
 		"noScenesAvailable": "Inga rumsscener är tillgängliga just nu. Försök igen senare.",
-		"previewsNotFound": "Rumspreviews hittades inte."
+		"previewsNotFound": "Rumspreviews hittades inte.",
+		"upscaleDisabled": "Upscale är pausad av administratören."
 	},
 	"howItWorks": {
 		"heading": "Så fungerar det",
@@ -587,6 +588,14 @@
 		"pipelineTriggerPostGeneration": "After generation",
 		"pipelineTriggerPostGenerationHint": "Runs immediately after AI generation finishes. Faster admin preview, but spends credits on abandoned carts.",
 		"pipelineTriggerSaved": "Trigger updated",
+		"pipelineFlagActive": "Active",
+		"pipelineFlagPaused": "Paused",
+		"pipelineUpscaleEnabledLabel": "Topaz upscale",
+		"pipelineUpscaleEnabledDescription": "When off, new orders skip the Topaz upscale step and are marked as skipped — no print.jpg is generated until re-enabled.",
+		"pipelineUpscalePausedHint": "Upscale is paused — orders will not consume Topaz credits.",
+		"pipelineEnvPreviewsEnabledLabel": "Environment previews",
+		"pipelineEnvPreviewsEnabledDescription": "When off, the room mockup gallery is hidden from the shop and no Kie.ai scene tasks are created.",
+		"pipelineEnvPreviewsPausedHint": "Environment previews are paused — the room mockup gallery is hidden from customers.",
 		"pipelineMetrics": "Pipeline stats (last 30 days)",
 		"pipelineMetricsSuccess": "Success",
 		"pipelineMetricsFail": "Failed",

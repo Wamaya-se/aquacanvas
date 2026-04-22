@@ -6,6 +6,8 @@ import {
 	getRateLimitBypassEnabled,
 	getUpscaleTrigger,
 	getUpscaleMetrics,
+	getUpscaleEnabled,
+	getEnvironmentPreviewsEnabled,
 } from '@/lib/actions/admin-settings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +23,7 @@ import {
 import { TestModeToggle } from '@/components/admin/test-mode-toggle'
 import { RateLimitToggle } from '@/components/admin/rate-limit-toggle'
 import { UpscaleTriggerToggle } from '@/components/admin/upscale-trigger-toggle'
+import { PipelineFeatureToggle } from '@/components/admin/pipeline-feature-toggle'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('admin.meta')
@@ -34,13 +37,21 @@ function isEnvSet(key: string): boolean {
 export default async function AdminSettingsPage() {
 	const t = await getTranslations('admin')
 
-	const [isTestMode, isRateLimitBypassed, upscaleTrigger, upscaleMetrics] =
-		await Promise.all([
-			getTestModeEnabled(),
-			getRateLimitBypassEnabled(),
-			getUpscaleTrigger(),
-			getUpscaleMetrics(),
-		])
+	const [
+		isTestMode,
+		isRateLimitBypassed,
+		upscaleTrigger,
+		upscaleMetrics,
+		upscaleEnabled,
+		envPreviewsEnabled,
+	] = await Promise.all([
+		getTestModeEnabled(),
+		getRateLimitBypassEnabled(),
+		getUpscaleTrigger(),
+		getUpscaleMetrics(),
+		getUpscaleEnabled(),
+		getEnvironmentPreviewsEnabled(),
+	])
 
 	const hasResendKey = isEnvSet('RESEND_API_KEY')
 	const hasStripeKey = isEnvSet('STRIPE_SECRET_KEY')
@@ -164,6 +175,24 @@ export default async function AdminSettingsPage() {
 					</p>
 				</CardHeader>
 				<CardContent className="space-y-6">
+					<PipelineFeatureToggle
+						id="upscaleEnabled"
+						kind="upscale"
+						label={t('pipelineUpscaleEnabledLabel')}
+						description={t('pipelineUpscaleEnabledDescription')}
+						pausedHint={t('pipelineUpscalePausedHint')}
+						initialEnabled={upscaleEnabled}
+					/>
+					<Separator />
+					<PipelineFeatureToggle
+						id="environmentPreviewsEnabled"
+						kind="environmentPreviews"
+						label={t('pipelineEnvPreviewsEnabledLabel')}
+						description={t('pipelineEnvPreviewsEnabledDescription')}
+						pausedHint={t('pipelineEnvPreviewsPausedHint')}
+						initialEnabled={envPreviewsEnabled}
+					/>
+					<Separator />
 					<UpscaleTriggerToggle initialValue={upscaleTrigger} />
 					<Separator />
 					<div>

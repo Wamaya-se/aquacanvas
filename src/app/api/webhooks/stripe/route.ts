@@ -146,10 +146,19 @@ export async function POST(request: Request) {
 					try {
 						const res = await triggerUpscaleInternal(order.id)
 						if (!res.success) {
-							console.error(
-								`[stripe-webhook] post_checkout upscale failed for ${order.id}:`,
-								res.error,
-							)
+							// `errors.upscaleDisabled` is an intentional admin pause,
+							// not a pipeline failure — log at info level so the alert
+							// noise stays focused on real regressions.
+							if (res.error === 'errors.upscaleDisabled') {
+								console.info(
+									`[stripe-webhook] upscale paused by admin for ${order.id}`,
+								)
+							} else {
+								console.error(
+									`[stripe-webhook] post_checkout upscale failed for ${order.id}:`,
+									res.error,
+								)
+							}
 						}
 					} catch (err) {
 						console.error('[stripe-webhook] upscale trigger', err)
