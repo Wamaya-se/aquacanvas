@@ -13,6 +13,7 @@ import { OrderStatusChanger } from '@/components/admin/order-status-changer'
 import { UpscaleActionButton } from '@/components/admin/upscale-action-button'
 import { HeroMockupActionButton } from '@/components/admin/hero-mockup-action-button'
 import { getSceneName } from '@/lib/db-helpers'
+import { estimateOrderCredits, USD_PER_CREDIT } from '@/lib/ai-credits'
 import type { PreviewStatus, UpscaleStatus } from '@/types/supabase'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -129,6 +130,27 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 			failStage: metadata.stage ?? null,
 			failedAt: metadata.failed_at ?? null,
 		}
+	})
+
+	const credits = estimateOrderCredits(
+		{
+			aiModel: order.ai_model,
+			aiTaskId: order.ai_task_id,
+			generatedImagePath: order.generated_image_path,
+			generatedWidthPx: order.generated_width_px,
+			generatedHeightPx: order.generated_height_px,
+			heroMockupStatus,
+			heroMockupTaskId: order.hero_mockup_task_id,
+			upscaleStatus,
+			upscaleTaskId: order.upscale_task_id,
+		},
+		environmentPreviews.map((ep) => ({ status: ep.status, taskId: ep.taskId })),
+	)
+	const estimatedUsdLabel = credits.estimatedUsd.toLocaleString('en-US', {
+		style: 'currency',
+		currency: 'USD',
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 3,
 	})
 
 	return (
@@ -345,6 +367,106 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 								hasGeneratedImage={Boolean(order.generated_image_path)}
 							/>
 						</div>
+					</div>
+
+					<div className="rounded-xl bg-surface-container p-6">
+						<h2 className="mb-1 font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">
+							{t('orderCreditsSection')}
+						</h2>
+						<p className="mb-4 font-sans text-xs text-muted-foreground">
+							{t('orderCreditsHint')}
+						</p>
+						<dl className="space-y-3">
+							<div className="flex items-start justify-between gap-4">
+								<dt className="font-sans text-sm text-muted-foreground">
+									{t('orderCreditsGeneration')}
+									<span className="block font-mono text-xs text-muted-foreground/70">
+										{credits.generation.model}
+									</span>
+								</dt>
+								<dd className="font-sans text-sm text-foreground text-right">
+									{credits.generation.used
+										? t('orderCreditsValue', { credits: credits.generation.credits })
+										: '—'}
+								</dd>
+							</div>
+							<Separator />
+							<div className="flex items-start justify-between gap-4">
+								<dt className="font-sans text-sm text-muted-foreground">
+									{t('orderCreditsHeroMockup')}
+									<span className="block font-mono text-xs text-muted-foreground/70">
+										{credits.heroMockup.model}
+									</span>
+								</dt>
+								<dd className="font-sans text-sm text-foreground text-right">
+									{credits.heroMockup.used
+										? t('orderCreditsValue', { credits: credits.heroMockup.credits })
+										: '—'}
+								</dd>
+							</div>
+							<Separator />
+							<div className="flex items-start justify-between gap-4">
+								<dt className="font-sans text-sm text-muted-foreground">
+									{t('orderCreditsUpscale')}
+									<span className="block font-mono text-xs text-muted-foreground/70">
+										{credits.upscale.model}
+										{credits.upscale.tier ? ` · ${credits.upscale.tier}` : ''}
+									</span>
+								</dt>
+								<dd className="font-sans text-sm text-foreground text-right">
+									{credits.upscale.used
+										? t('orderCreditsValue', { credits: credits.upscale.credits })
+										: '—'}
+								</dd>
+							</div>
+							<Separator />
+							<div className="flex items-start justify-between gap-4">
+								<dt className="font-sans text-sm text-muted-foreground">
+									{t('orderCreditsEnvPreviews')}
+									<span className="block font-mono text-xs text-muted-foreground/70">
+										{credits.environmentPreviews.model}
+									</span>
+									{credits.environmentPreviews.used && (
+										<span className="block font-sans text-xs text-muted-foreground">
+											{t('orderCreditsEnvPreviewsCount', {
+												total: credits.environmentPreviews.count,
+												success: credits.environmentPreviews.successCount,
+												fail: credits.environmentPreviews.failCount,
+											})}
+										</span>
+									)}
+								</dt>
+								<dd className="font-sans text-sm text-foreground text-right">
+									{credits.environmentPreviews.used
+										? t('orderCreditsValue', {
+												credits: credits.environmentPreviews.credits,
+											})
+										: '—'}
+								</dd>
+							</div>
+							<Separator />
+							<div className="flex items-center justify-between gap-4">
+								<dt className="font-heading text-sm font-semibold text-foreground">
+									{t('orderCreditsTotal')}
+								</dt>
+								<dd className="font-heading text-base font-semibold text-foreground">
+									{t('orderCreditsValue', { credits: credits.totalCredits })}
+								</dd>
+							</div>
+							<div className="flex items-center justify-between gap-4">
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('orderCreditsEstimatedUsd')}
+								</dt>
+								<dd className="font-sans text-xs text-muted-foreground">
+									{credits.totalCredits > 0 ? estimatedUsdLabel : '—'}
+								</dd>
+							</div>
+						</dl>
+						<p className="mt-4 font-sans text-xs text-muted-foreground">
+							{t('orderCreditsDisclaimer', {
+								rate: USD_PER_CREDIT.toFixed(3),
+							})}
+						</p>
 					</div>
 
 					{(order.ai_model || order.ai_task_id || order.ai_cost_time_ms) && (
