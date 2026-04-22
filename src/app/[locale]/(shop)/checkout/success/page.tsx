@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import Image from 'next/image'
 import { CheckCircle2 } from 'lucide-react'
+import { ProtectedImage } from '@/components/shop/protected-image'
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { Link } from '@/i18n/navigation'
@@ -116,7 +116,7 @@ export default async function CheckoutSuccessPage({
 
 				{generatedImageUrl && (
 					<div className="relative mb-4 overflow-hidden rounded-lg">
-						<Image
+						<ProtectedImage
 							src={generatedImageUrl}
 							alt={styleName}
 							width={600}

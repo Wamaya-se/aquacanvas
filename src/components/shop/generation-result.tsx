@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useMemo } from 'react'
 import { useRouter } from '@/i18n/navigation'
-import Image from 'next/image'
-import { Download, ShoppingBag, RotateCcw, FlaskConical, Loader2, Tag, Expand, AlertTriangle } from 'lucide-react'
+import { ProtectedImage } from '@/components/shop/protected-image'
+import { ShoppingBag, FlaskConical, Loader2, Tag, Expand, AlertTriangle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -294,38 +294,20 @@ export function GenerationResult({
 
 			{!testMode && !allFormatsBlocked && (
 				<>
-					<div className="flex flex-col gap-3 sm:flex-row">
-						<Button
-							variant="brand"
-							size="lg"
-							className="flex-1"
-							asChild
-						>
-							<a
-								href={generatedImageUrl}
-								download="aquacanvas-artwork.png"
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<Download className="size-4" aria-hidden="true" />
-								{t('downloadArtwork')}
-							</a>
-						</Button>
-						<Button
-							variant="secondary"
-							size="lg"
-							className="flex-1"
-							disabled={checkoutLoading || !effectiveSelectedFormatId}
-							onClick={handleCheckout}
-						>
-							{checkoutLoading ? (
-								<Loader2 className="size-4 animate-spin" aria-hidden="true" />
-							) : (
-								<ShoppingBag className="size-4" aria-hidden="true" />
-							)}
-							{checkoutLoading ? tCheckout('processing') : t('orderPrint')}
-						</Button>
-					</div>
+					<Button
+						variant="brand"
+						size="lg"
+						className="w-full"
+						disabled={checkoutLoading || !effectiveSelectedFormatId}
+						onClick={handleCheckout}
+					>
+						{checkoutLoading ? (
+							<Loader2 className="size-4 animate-spin" aria-hidden="true" />
+						) : (
+							<ShoppingBag className="size-4" aria-hidden="true" />
+						)}
+						{checkoutLoading ? tCheckout('processing') : t('orderPrint')}
+					</Button>
 
 					{isDev && (
 						<Button
@@ -345,16 +327,6 @@ export function GenerationResult({
 					)}
 				</>
 			)}
-
-			<Button
-				variant="ghost"
-				size="sm"
-				onClick={onReset}
-				className="mx-auto"
-			>
-				<RotateCcw className="size-4" aria-hidden="true" />
-				{t('tryAgain')}
-			</Button>
 
 			<ImageLightbox
 				slides={allSlides}
@@ -417,7 +389,7 @@ function ClickableImage({ src, alt, hintText, onClick }: ClickableImageProps) {
 			className="group cursor-pointer overflow-hidden rounded-xl bg-surface-container-high p-2 shadow-[0_4px_40px_rgba(0,0,0,0.06)] transition-transform hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 		>
 			<div className="relative overflow-hidden rounded-lg">
-				<Image
+				<ProtectedImage
 					src={src}
 					alt={alt}
 					width={600}

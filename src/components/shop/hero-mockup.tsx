@@ -1,8 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
 import { AlertTriangle, Expand, RefreshCw } from 'lucide-react'
+import { ProtectedImage } from '@/components/shop/protected-image'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -211,7 +211,7 @@ export function HeroMockup({
 					}}
 					className="group relative cursor-pointer overflow-hidden rounded-xl transition-transform hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 				>
-					<Image
+					<ProtectedImage
 						src={mockupUrl}
 						alt={t('heroMockupAlt')}
 						width={800}

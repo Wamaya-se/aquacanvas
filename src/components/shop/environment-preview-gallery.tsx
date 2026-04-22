@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import Image from 'next/image'
 import { Loader2, AlertTriangle, RefreshCw, Expand } from 'lucide-react'
+import { ProtectedImage } from '@/components/shop/protected-image'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -253,7 +253,7 @@ function PreviewCard({ preview, onClick }: PreviewCardProps) {
 					}`}
 				>
 					<div className="relative overflow-hidden rounded-lg">
-						<Image
+						<ProtectedImage
 							src={preview.imageUrl}
 							alt={t('roomPreviewAlt', { sceneName: preview.sceneName })}
 							width={600}
