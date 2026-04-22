@@ -136,9 +136,6 @@ export function GenerationResult({
 	}, [heroMockupUrl, generatedImageUrl, originalPreviewUrl, t])
 
 	const heroMockupSlideIndex = heroMockupUrl ? 0 : -1
-	const originalSlideIndex = originalPreviewUrl
-		? (heroMockupUrl ? 2 : 1)
-		: -1
 
 	const allSlides = useMemo(
 		() => [...baseImages, ...envPreviewImages].map((img) => ({
@@ -245,24 +242,6 @@ export function GenerationResult({
 						hintText={t('zoomImage')}
 						onClick={() => handleImageClick(0)}
 					/>
-				)}
-
-				{originalPreviewUrl && (
-					<div className="flex w-full max-w-xs flex-col items-center gap-2">
-						<p className="font-sans text-xs font-medium text-muted-foreground">
-							{t('originalLabel')}
-						</p>
-						<ClickableImage
-							src={originalPreviewUrl}
-							alt={t('uploadedPreviewAlt')}
-							hintText={t('zoomImage')}
-							onClick={() =>
-								handleImageClick(
-									originalSlideIndex >= 0 ? originalSlideIndex : 0,
-								)
-							}
-						/>
-					</div>
 				)}
 			</div>
 
@@ -435,7 +414,7 @@ function ClickableImage({ src, alt, hintText, onClick }: ClickableImageProps) {
 					onClick()
 				}
 			}}
-			className="group cursor-pointer overflow-hidden rounded-xl bg-surface-container-high p-2 shadow-[0_4px_40px_rgba(0,0,0,0.06)] transition-transform hover:scale-[1.01] active:scale-[0.99]"
+			className="group cursor-pointer overflow-hidden rounded-xl bg-surface-container-high p-2 shadow-[0_4px_40px_rgba(0,0,0,0.06)] transition-transform hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 		>
 			<div className="relative overflow-hidden rounded-lg">
 				<Image

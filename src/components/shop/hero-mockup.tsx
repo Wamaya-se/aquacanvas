@@ -156,9 +156,13 @@ export function HeroMockup({
 
 	if (state === 'generating') {
 		return (
-			<div className="flex w-full max-w-md flex-col items-center gap-3">
+			<div
+				className="flex w-full max-w-md flex-col items-center gap-3"
+				aria-busy="true"
+			>
 				<Skeleton
 					className={`${ORIENTATION_ASPECT[orientation]} w-full rounded-xl`}
+					aria-hidden="true"
 				/>
 				<GenerationProgressBar
 					message={t('progressHeroMockup')}
@@ -205,7 +209,7 @@ export function HeroMockup({
 							onImageClick()
 						}
 					}}
-					className="group relative cursor-pointer overflow-hidden rounded-xl transition-transform hover:scale-[1.01] active:scale-[0.99]"
+					className="group relative cursor-pointer overflow-hidden rounded-xl transition-transform hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-background"
 				>
 					<Image
 						src={mockupUrl}

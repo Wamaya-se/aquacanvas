@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { OrderStatusChanger } from '@/components/admin/order-status-changer'
 import { UpscaleActionButton } from '@/components/admin/upscale-action-button'
+import { HeroMockupActionButton } from '@/components/admin/hero-mockup-action-button'
 import { getSceneName } from '@/lib/db-helpers'
-import type { UpscaleStatus } from '@/types/supabase'
+import type { PreviewStatus, UpscaleStatus } from '@/types/supabase'
 
 export async function generateMetadata(): Promise<Metadata> {
 	const t = await getTranslations('admin.meta')
@@ -64,6 +65,26 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 	const printImageUrl = order.print_image_path
 		? supabase.storage.from('images').getPublicUrl(order.print_image_path).data.publicUrl
 		: null
+	const heroMockupImageUrl = order.hero_mockup_image_path
+		? supabase.storage.from('images').getPublicUrl(order.hero_mockup_image_path).data.publicUrl
+		: null
+
+	const heroMockupStatus = order.hero_mockup_status as PreviewStatus
+	const heroMockupStatusVariant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' =
+		heroMockupStatus === 'success'
+			? 'success'
+			: heroMockupStatus === 'fail'
+				? 'destructive'
+				: heroMockupStatus === 'processing'
+					? 'warning'
+					: 'secondary'
+	const heroMockupStatusKey = (
+		`heroMockupStatus${heroMockupStatus.charAt(0).toUpperCase()}${heroMockupStatus.slice(1)}`
+	) as
+		| 'heroMockupStatusPending'
+		| 'heroMockupStatusProcessing'
+		| 'heroMockupStatusSuccess'
+		| 'heroMockupStatusFail'
 
 	const upscaleStatus = (order.upscale_status ?? null) as UpscaleStatus | null
 	const printStatusVariant: 'default' | 'secondary' | 'success' | 'warning' | 'destructive' =
@@ -79,7 +100,8 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 				| 'printStatusPending'
 				| 'printStatusProcessing'
 				| 'printStatusSuccess'
-				| 'printStatusFail')
+				| 'printStatusFail'
+				| 'printStatusSkipped')
 		: ('printStatusIdle' as const)
 
 	const { data: envPreviews } = await supabase
@@ -253,6 +275,73 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 							<UpscaleActionButton
 								orderId={order.id}
 								status={upscaleStatus}
+								hasGeneratedImage={Boolean(order.generated_image_path)}
+							/>
+						</div>
+					</div>
+
+					<div className="rounded-xl bg-surface-container p-6">
+						<div className="mb-4 flex items-center justify-between gap-3">
+							<h2 className="font-heading text-lg font-semibold tracking-[-0.03em] text-foreground">
+								{t('heroMockupSection')}
+							</h2>
+							<Badge variant={heroMockupStatusVariant}>
+								{t(heroMockupStatusKey)}
+							</Badge>
+						</div>
+						<dl className="space-y-3">
+							<div className="flex justify-between">
+								<dt className="font-sans text-sm text-muted-foreground">
+									{t('heroMockupCostTime')}
+								</dt>
+								<dd className="font-sans text-sm text-foreground">
+									{order.hero_mockup_ai_cost_time_ms != null
+										? `${(order.hero_mockup_ai_cost_time_ms / 1000).toFixed(1)}s`
+										: '—'}
+								</dd>
+							</div>
+							{order.hero_mockup_task_id && (
+								<>
+									<Separator />
+									<div className="flex justify-between">
+										<dt className="font-sans text-sm text-muted-foreground">
+											{t('heroMockupTaskId')}
+										</dt>
+										<dd className="font-mono text-xs text-muted-foreground break-all">
+											{order.hero_mockup_task_id.slice(0, 24)}
+											{order.hero_mockup_task_id.length > 24 ? '…' : ''}
+										</dd>
+									</div>
+								</>
+							)}
+						</dl>
+						<div className="mt-4 flex flex-col gap-3">
+							{heroMockupImageUrl ? (
+								<div className="overflow-hidden rounded-lg">
+									<Image
+										src={heroMockupImageUrl}
+										alt={t('heroMockupSection')}
+										width={400}
+										height={300}
+										unoptimized
+										className="h-auto w-full object-cover"
+									/>
+								</div>
+							) : (
+								<p className="font-sans text-xs text-muted-foreground">
+									{t('heroMockupNone')}
+								</p>
+							)}
+							{heroMockupImageUrl && (
+								<Button variant="outline" size="sm" asChild>
+									<a href={heroMockupImageUrl} target="_blank" rel="noreferrer">
+										{t('heroMockupOpen')}
+									</a>
+								</Button>
+							)}
+							<HeroMockupActionButton
+								orderId={order.id}
+								status={heroMockupStatus}
 								hasGeneratedImage={Boolean(order.generated_image_path)}
 							/>
 						</div>

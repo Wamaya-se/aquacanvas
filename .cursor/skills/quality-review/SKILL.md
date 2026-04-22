@@ -53,9 +53,11 @@ After completing any feature, page, component, or significant code change. Final
 ### 4. Internationalization (i18n)
 
 - [ ] **No hardcoded strings**: All text via next-intl.
-- [ ] **Messages file**: New strings in `messages/en.json`.
+- [ ] **Messages in BOTH locales**: New strings added to `messages/en.json` AND `messages/sv.json` (never only one).
+- [ ] **Correct namespace**: Keys placed at the correct nested path (e.g. `admin.meta.dashboardTitle`, not `admin.dashboardTitle`). Check the `getTranslations(...)`/`useTranslations(...)` call in the file.
 - [ ] **Locale-aware metadata**: `generateMetadata` uses `getTranslations`.
 - [ ] **DB content**: System-defined content uses slug → locale pattern.
+- [ ] **Audit passes**: `npm run i18n:audit` returns exit code 0 — no missing keys, no drift between locales.
 
 ### 5. Code quality
 

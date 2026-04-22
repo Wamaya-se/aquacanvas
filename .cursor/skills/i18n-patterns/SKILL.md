@@ -147,14 +147,60 @@ return { success: false, error: 'errors.orderNotFound' }
 
 Client components translate via `useActionError()` hook.
 
+## Preventing `MISSING_MESSAGE` runtime errors
+
+`MISSING_MESSAGE: Could not resolve X in messages for locale Y` is a **runtime**
+error in next-intl — it only surfaces when the page is actually rendered.
+Avoid it by following this workflow rigorously:
+
+### 1. Add keys to BOTH locale files in the same edit
+
+Every new key must land in `messages/en.json` AND `messages/sv.json`
+simultaneously. Never commit a key that only exists in one locale.
+
+### 2. Use the correct (possibly nested) namespace
+
+next-intl namespaces are nested. If the file binds
+
+```tsx
+const t = await getTranslations('admin.meta')
+t('dashboardTitle')
+```
+
+then the key must be at `admin.meta.dashboardTitle`, not `admin.dashboardTitle`.
+Always read the `useTranslations(...)` / `getTranslations(...)` call in the file
+before deciding where to place the key.
+
+### 3. Restart the dev server after message-file edits
+
+Turbopack can cache stale messages — if you still see `MISSING_MESSAGE` after
+adding the key, stop and restart `next dev`.
+
+### 4. Run the automated audit
+
+```bash
+npm run i18n:audit
+```
+
+This runs `scripts/i18n-audit.mjs`, which:
+
+- Scans every `t('...')` call in `src/` scope-aware.
+- Verifies each resolved key exists in both `en.json` and `sv.json`.
+- Flags drift (keys present in one locale but missing in the other).
+- Exits with code 1 on any issue — suitable for CI.
+
+Run it after any change that touches translated text, and always before
+reporting a feature complete.
+
 ## Checklist
 
 - [ ] No hardcoded user-facing strings in JSX
 - [ ] Server Action errors use `errors.*` i18n keys
-- [ ] New strings added to `messages/en.json`
-- [ ] Correct namespace used
+- [ ] New strings added to **both** `messages/en.json` **and** `messages/sv.json`
+- [ ] Correct (and correctly nested) namespace used
 - [ ] Variables use `{name}` syntax
 - [ ] Dates and numbers use `useFormatter()`
 - [ ] Page has `generateMetadata` with localized title/description
 - [ ] DB-driven display content uses slug → locale pattern
 - [ ] Public pages include Open Graph meta from locale files
+- [ ] `npm run i18n:audit` passes (no missing keys, no drift)

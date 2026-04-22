@@ -114,6 +114,19 @@ Aquacanvas är en e-commerce-plattform som erbjuder AI-genererad konst. Kunden l
 - `en.json` och `sv.json` **måste ha identiska nyckel-set** — synkas vid varje ny sträng
 - **Error-strängar är i18n-nycklar** (`errors.invalidCredentials`) — aldrig råa engelska meddelanden från DB/Stripe
 
+### i18n-workflow — förhindra `MISSING_MESSAGE`-fel
+
+`MISSING_MESSAGE: Could not resolve X` är ett runtime-fel i Next.js/next-intl som bara syns när sidan faktiskt renderas. För att undvika dessa **alltid**:
+
+1. **Lägg alla nya nycklar i BÅDA `messages/en.json` OCH `messages/sv.json` i samma edit** — aldrig bara en locale.
+2. **Placera nyckeln i rätt namespace.** Namespaces är nästade — `getTranslations('admin.meta')` + `t('dashboardTitle')` resolverar `admin.meta.dashboardTitle`, **inte** `admin.dashboardTitle`. Kolla `useTranslations('ns')`/`getTranslations('ns')`-anropet i filen innan du lägger till nyckeln.
+3. **Kör `npm run i18n:audit`** efter varje ändring som rör strängar. Skriptet (`scripts/i18n-audit.mjs`) skannar alla `t('...')`-anrop scope-medvetet och rapporterar:
+   - Nycklar som används i kod men saknas i en eller båda locales.
+   - Drift: nycklar som finns i `en.json` men inte `sv.json`, eller vice versa.
+   - Avslutar med exit code 1 vid fel → lämpligt för CI.
+4. **Ändringar i i18n-filer kräver dev-server-omstart** om Turbopack cachar gamla meddelanden (fel i form av `MISSING_MESSAGE` persisterar då även efter korrekt edit).
+5. **Nya sidor med `generateMetadata`** använder ofta `getTranslations('admin.meta')` eller `getTranslations('checkout.meta')` — glöm inte dessa nästade namespaces när nya sidor skapas.
+
 ### i18n + SEO
 
 - `hreflang`-alternates genereras automatiskt i `buildMetadata` (`src/lib/metadata.ts`) baserat på `routing.locales` + `path`
@@ -175,7 +188,23 @@ via `sharp` (se `src/lib/image-processing.ts`).
 - `orders.upscale_status` sätts till `pending` för att markera att
   print-filen återstår
 
-**3. Upscale + AdobeRGB-konvertering (print-spår)**
+**3. Hero-mockup + rum-previews (visualiseringsspår)**
+
+- Direkt efter lyckad AI-generering triggas fyra parallella Kie-calls
+  (samma `nano-banana-edit` prompt-pipeline) för att skapa
+  mockup-kompositer av konstverket på canvas-vägg + tre rumsscener
+- **Hero-mockup**: `src/lib/actions/hero-mockup.ts` + kärnlogik i
+  `src/lib/hero-mockup-pipeline.ts` (delad mellan kund- och admin-actions).
+  Mastern väljs utifrån orientation (`portrait`/`landscape`/`square`) från
+  `hero-mockups/`-Storage-mappen, komponeras med konstverket och sparas
+  som `images/{prefix}/hero-mockup-previews/{orderId}.png`
+- **Rum-previews**: 3 scener från `environment_scenes`-tabellen,
+  komponerade med samma pipeline, sparade i
+  `environment_previews`-tabellen
+- Status och cost-tid spåras per order: `hero_mockup_status`,
+  `hero_mockup_ai_cost_time_ms`, `hero_mockup_task_id`
+
+**4. Upscale + AdobeRGB-konvertering (print-spår)**
 
 - Trigger styrs av `app_settings.upscale_trigger`:
   `post_checkout` (default, efter Stripe `payment_intent.succeeded`) eller
@@ -204,15 +233,18 @@ via `sharp` (se `src/lib/image-processing.ts`).
 
 - `upscale_task_id`, `upscale_cost_time_ms`, `upscale_status` på varje
   order — ger både kostnadsspårning och per-order felsökning
+- `hero_mockup_task_id`, `hero_mockup_ai_cost_time_ms`,
+  `hero_mockup_status` speglar samma mönster för hero-mockup-pipelinen
 - `app_settings.upscale_trigger` gör det möjligt att byta trigger-läge
   utan deploy
-- Admin `/admin` dashboard visar "Pipeline health (last 7 days)"
-  (success rate, avg DPI, avg tid, in-flight)
-- Admin `/admin/settings` visar 30-dagars aggregat + trigger-toggle
-- Admin order-detalj har `UpscaleActionButton` för manuell
-  run/retry/check mot failade jobb
-- Sentry-taggar på alla upscale-fel: `action`, `stage`, `orderId`,
-  `taskId`, `factor`
+- Admin `/admin` dashboard visar "Pipeline health (last 7 days)" för
+  både upscale och hero-mockup (success rate, avg DPI/tid, in-flight)
+- Admin `/admin/settings` visar 30-dagars aggregat per pipeline +
+  trigger-toggle
+- Admin order-detalj har `UpscaleActionButton` och
+  `HeroMockupActionButton` för manuell run/retry/check mot failade jobb
+- Sentry-taggar på alla pipeline-fel: `action`, `stage`, `orderId`,
+  `taskId`, `factor` (upscale) / `failCode` (hero-mockup)
 
 **Utveckling**
 

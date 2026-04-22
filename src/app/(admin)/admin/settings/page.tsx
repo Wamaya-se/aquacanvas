@@ -6,6 +6,7 @@ import {
 	getRateLimitBypassEnabled,
 	getUpscaleTrigger,
 	getUpscaleMetrics,
+	getHeroMockupMetrics,
 	getUpscaleEnabled,
 	getEnvironmentPreviewsEnabled,
 } from '@/lib/actions/admin-settings'
@@ -42,6 +43,7 @@ export default async function AdminSettingsPage() {
 		isRateLimitBypassed,
 		upscaleTrigger,
 		upscaleMetrics,
+		heroMockupMetrics,
 		upscaleEnabled,
 		envPreviewsEnabled,
 	] = await Promise.all([
@@ -49,6 +51,7 @@ export default async function AdminSettingsPage() {
 		getRateLimitBypassEnabled(),
 		getUpscaleTrigger(),
 		getUpscaleMetrics(),
+		getHeroMockupMetrics(),
 		getUpscaleEnabled(),
 		getEnvironmentPreviewsEnabled(),
 	])
@@ -239,17 +242,72 @@ export default async function AdminSettingsPage() {
 											: '—'}
 									</dd>
 								</div>
-								<div>
-									<dt className="font-sans text-xs text-muted-foreground">
-										{t('pipelineMetricsAvgDpi')}
-									</dt>
-									<dd className="font-heading text-xl font-semibold text-foreground">
-										{upscaleMetrics.avgPrintDpi ?? '—'}
-									</dd>
-								</div>
-							</dl>
-						)}
-					</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineMetricsAvgDpi')}
+								</dt>
+								<dd className="font-heading text-xl font-semibold text-foreground">
+									{upscaleMetrics.avgPrintDpi ?? '—'}
+								</dd>
+							</div>
+						</dl>
+					)}
+				</div>
+			</CardContent>
+		</Card>
+
+		<Card className="mb-8">
+				<CardHeader>
+					<CardTitle className="font-heading text-lg tracking-[-0.03em]">
+						{t('heroMockupPipeline')}
+					</CardTitle>
+					<p className="font-sans text-xs text-muted-foreground">
+						{t('heroMockupPipelineDescription')}
+					</p>
+				</CardHeader>
+				<CardContent>
+					{heroMockupMetrics.total === 0 ? (
+						<p className="font-sans text-sm text-muted-foreground">
+							{t('heroMockupMetricsNone')}
+						</p>
+					) : (
+						<dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineMetricsSuccess')}
+								</dt>
+								<dd className="font-heading text-xl font-semibold text-foreground">
+									{heroMockupMetrics.success}
+								</dd>
+							</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineMetricsFail')}
+								</dt>
+								<dd className="font-heading text-xl font-semibold text-foreground">
+									{heroMockupMetrics.fail}
+								</dd>
+							</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineMetricsProcessing')}
+								</dt>
+								<dd className="font-heading text-xl font-semibold text-foreground">
+									{heroMockupMetrics.processing}
+								</dd>
+							</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineMetricsAvgTime')}
+								</dt>
+								<dd className="font-heading text-xl font-semibold text-foreground">
+									{heroMockupMetrics.avgCostTimeMs != null
+										? `${(heroMockupMetrics.avgCostTimeMs / 1000).toFixed(1)}s`
+										: '—'}
+								</dd>
+							</div>
+						</dl>
+					)}
 				</CardContent>
 			</Card>
 

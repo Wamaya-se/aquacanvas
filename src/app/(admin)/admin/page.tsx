@@ -2,7 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import { createClient } from '@/lib/supabase/server'
-import { getUpscaleMetrics } from '@/lib/actions/admin-settings'
+import {
+	getUpscaleMetrics,
+	getHeroMockupMetrics,
+} from '@/lib/actions/admin-settings'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -36,6 +39,7 @@ export default async function AdminDashboardPage() {
 		pendingResult,
 		recentResult,
 		pipelineHealth,
+		heroMockupHealth,
 	] = await Promise.all([
 		supabase.from('orders').select('id', { count: 'exact', head: true }),
 		supabase
@@ -56,6 +60,7 @@ export default async function AdminDashboardPage() {
 			.order('created_at', { ascending: false })
 			.limit(10),
 		getUpscaleMetrics({ days: 7 }),
+		getHeroMockupMetrics({ days: 7 }),
 	])
 
 	const totalOrders = allOrdersResult.count ?? 0
@@ -157,6 +162,63 @@ export default async function AdminDashboardPage() {
 								</dt>
 								<dd className="font-heading text-2xl font-semibold text-foreground">
 									{pipelineHealth.avgPrintDpi ?? '—'}
+								</dd>
+							</div>
+						</dl>
+					)}
+				</CardContent>
+			</Card>
+
+			<Card className="mb-8">
+				<CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+					<CardTitle className="font-heading text-lg tracking-[-0.03em]">
+						{t('heroMockupHealthWeek')}
+					</CardTitle>
+					<Button variant="ghost" size="sm" asChild>
+						<Link href="/admin/settings">{t('viewSettings')}</Link>
+					</Button>
+				</CardHeader>
+				<CardContent>
+					{heroMockupHealth.total === 0 ? (
+						<p className="font-sans text-sm text-muted-foreground">
+							{t('heroMockupHealthEmpty')}
+						</p>
+					) : (
+						<dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineHealthSuccessRate')}
+								</dt>
+								<dd className="font-heading text-2xl font-semibold text-foreground">
+									{heroMockupHealth.successRate != null
+										? `${Math.round(heroMockupHealth.successRate * 100)}%`
+										: '—'}
+								</dd>
+							</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineHealthFailed')}
+								</dt>
+								<dd className="font-heading text-2xl font-semibold text-foreground">
+									{heroMockupHealth.fail}
+								</dd>
+							</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineHealthInFlight')}
+								</dt>
+								<dd className="font-heading text-2xl font-semibold text-foreground">
+									{heroMockupHealth.processing}
+								</dd>
+							</div>
+							<div>
+								<dt className="font-sans text-xs text-muted-foreground">
+									{t('pipelineHealthAvgTime')}
+								</dt>
+								<dd className="font-heading text-2xl font-semibold text-foreground">
+									{heroMockupHealth.avgCostTimeMs != null
+										? `${(heroMockupHealth.avgCostTimeMs / 1000).toFixed(1)}s`
+										: '—'}
 								</dd>
 							</div>
 						</dl>

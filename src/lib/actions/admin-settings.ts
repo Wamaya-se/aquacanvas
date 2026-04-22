@@ -360,3 +360,86 @@ export async function getUpscaleMetrics(
 		windowDays,
 	}
 }
+
+export interface HeroMockupMetrics {
+	success: number
+	fail: number
+	processing: number
+	avgCostTimeMs: number | null
+	total: number
+	successRate: number | null
+	windowDays: number
+}
+
+/**
+ * Aggregate hero-mockup pipeline health for the last N days.
+ *
+ * Unlike `upscale_status`, `hero_mockup_status` has a NOT NULL default of
+ * `'pending'` for every order, so we filter to rows that actually ran the
+ * pipeline (`processing` / `success` / `fail`). Pending rows are treated as
+ * "not attempted" and never counted.
+ */
+export async function getHeroMockupMetrics(
+	options: { days?: number } = {},
+): Promise<HeroMockupMetrics> {
+	await requireAdmin()
+
+	const windowDays = options.days ?? 30
+	const adminDb = createAdminClient()
+	const since = new Date(Date.now() - windowDays * 24 * 60 * 60 * 1000).toISOString()
+
+	const { data, error } = await adminDb
+		.from('orders')
+		.select('hero_mockup_status, hero_mockup_ai_cost_time_ms')
+		.gte('created_at', since)
+		.in('hero_mockup_status', ['processing', 'success', 'fail'])
+
+	if (error || !data) {
+		return {
+			success: 0,
+			fail: 0,
+			processing: 0,
+			avgCostTimeMs: null,
+			total: 0,
+			successRate: null,
+			windowDays,
+		}
+	}
+
+	let success = 0
+	let fail = 0
+	let processing = 0
+	let costSum = 0
+	let costN = 0
+
+	for (const row of data) {
+		switch (row.hero_mockup_status) {
+			case 'success':
+				success++
+				break
+			case 'fail':
+				fail++
+				break
+			case 'processing':
+				processing++
+				break
+		}
+
+		if (row.hero_mockup_ai_cost_time_ms != null) {
+			costSum += row.hero_mockup_ai_cost_time_ms
+			costN++
+		}
+	}
+
+	const terminal = success + fail
+
+	return {
+		success,
+		fail,
+		processing,
+		avgCostTimeMs: costN > 0 ? Math.round(costSum / costN) : null,
+		total: data.length,
+		successRate: terminal > 0 ? success / terminal : null,
+		windowDays,
+	}
+}

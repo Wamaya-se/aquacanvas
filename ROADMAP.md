@@ -1,10 +1,10 @@
 # Aquacanvas — Roadmap
 
-> Updated: 2026-04-21 (Fas 15 Batch D klar — HeroMockup-komponent integrerad i generation-result.tsx, CanvasMockup CSS-ram borttagen, lightbox-ordning mockup→generated→original→env-scener, test-mode visar statisk master, fail-state med retry; redo för Batch E polish) | Format: compact, token-efficient. Update after each session.
+> Updated: 2026-04-22 (Fas 15 Batch E klar + i18n-kvalitetskontroll — hero-mockup-pipeline refaktorerad till delad `server-only`-modul, admin-wrappers + `HeroMockupActionButton`, dashboard/settings-metrics, a11y-pass, TECHSTACK + DB-schema-raden uppdaterade; /create polishades — original-bilden visas bara i lightboxen, storleksjämförelsen borttagen; `common.tryAgain` lades till i både `en.json` och `sv.json` (fanns använd i 5 error-boundaries men saknades), `scripts/i18n-audit.mjs` + `npm run i18n:audit` tillades för att fånga framtida `MISSING_MESSAGE`-fel innan de når runtime). | Format: compact, token-efficient. Update after each session.
 
 ## 🎯 Aktiv prioritet
 
-**Nästa upp:** **Fas 15** — AI-genererad hero-mockup (ersätter CSS-ramen på huvudresultatet med en riktig canvas-på-vägg-mockup via samma Kie-pipeline som miljöbilderna). 5 batchar, börja med Batch A.
+**Nästa upp:** **Fas 13** — email capture, abandoned cart, newsletter, delning (Fas 15 komplett: hero-mockup-pipeline prod-ready pending deploy-verifiering).
 **Parallellt möjligt:** Fas 13 email capture, abandoned cart, newsletter, delning.
 **Detaljerade fynd:** se `AUDIT.md` (filreferenser, radnummer, åtgärdsförslag per item).
 **Arbetsregel:** en batch = en fokuserad session = en commit. Markera `[x]` direkt när items är klara, uppdatera `## Status`-raden i batchen.
@@ -548,17 +548,20 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ### Batch E — Polish & slutstädning ✨
 
-> **Status:** 🔴 Inte påbörjad · **Session-scope:** A11y-pass, kostnads-tracking, admin-synlighet, dokumentation. Pre-merge cleanup.
+> **Status:** ✅ Klar (2026-04-22) · **Commit:** pending · **Session-scope:** A11y-pass, kostnads-tracking, admin-synlighet, dokumentation. Pre-merge cleanup.
 
-- [ ] Admin orderdetalj (`/admin/orders/[id]`): ny sektion "Hero mockup" med status-badge, task-ID, upscale-tid, öppna-knapp för `hero_mockup_image_path` + manuell retry-knapp (admin-guardad wrapper runt `generateHeroMockup`)
-- [ ] Kostnads-tracking: `hero_mockup_ai_cost_time_ms` loggas i settings-dashboard (utöka `getUpscaleMetrics` eller bygg ny `getHeroMockupMetrics`)
-- [ ] A11y-pass: verifiera `aria-live`-regions, keyboard-nav på retry-knapp, focus-state på mockup-bild, kontraststöd för progress-bar
-- [ ] Uppdatera `TECHSTACK.md` → "Bildflöde"-sektionen med hero-mockup-steget
-- [ ] Uppdatera `DB Schema Status`-raden längst ner i ROADMAP med nya kolumner
-- [ ] Verifiera prod-deploy: ny migration körs, masters finns i cloud storage, env-variabler oförändrade
-- [ ] Ev. flytta delad `verifyOrderOwnership` till bredare shared helper om fler actions kan dra nytta
+- [x] `src/lib/hero-mockup-pipeline.ts` — delad `server-only` kärnmodul. `triggerHeroMockup(order)` + `pollHeroMockup(order, prefix)` utan authz, så att både kundflöde (`hero-mockup.ts`) och admin-wrappers (`admin-hero-mockup.ts`) kan dela samma Kie-kod utan att exponera internals som RPC. `hero-mockup.ts` slimmad till en tunn `'use server'`-wrapper som kör owner-verifiering + delegerar.
+- [x] `src/lib/actions/admin-hero-mockup.ts` — `adminTriggerHeroMockup(orderId)` (admin-guardad, resettar `success`/`fail` → `pending` innan re-run så idempotens-guarden inte kort-kretsar) + `adminCheckHeroMockupStatus(orderId)` (admin-poll via `pollHeroMockup`). Båda revaliderar `/admin/orders` + `/admin/orders/[id]` efter åtgärd.
+- [x] `src/components/admin/hero-mockup-action-button.tsx` — run/retry/check-knapp som speglar `UpscaleActionButton`-mönstret: `pending` → run, `processing` → check, `fail`/`success` → retry. Använder `useActionError` + `router.refresh()`.
+- [x] Admin orderdetalj (`/admin/orders/[id]`): ny sektion "Hero mockup" med status-badge (secondary/warning/success/destructive), task-ID, Kie-tid, inbäddad preview-bild, öppna-i-ny-flik + `HeroMockupActionButton`.
+- [x] Kostnads-tracking: `getHeroMockupMetrics({ days })` i `admin-settings.ts` — filtrerar till `['processing','success','fail']` (pending = aldrig körd) och returnerar success/fail/processing-counts, `avgCostTimeMs`, `successRate`, `windowDays`. Dashboard renderar 7-dagars kort, settings 30-dagars aggregat.
+- [x] A11y-pass: `aria-busy="true"` på hero-mockup generating state (Skeleton markerad `aria-hidden`), `focus-visible:ring-2 ring-brand`-stil på klickbara mockup/artwork-bilder i `HeroMockup` + `ClickableImage`. `GenerationProgressBar` hade redan `role="status"` + `aria-live="polite"`.
+- [x] `TECHSTACK.md` "Bildflöde"-sektionen utökad med ett nytt steg "3. Hero-mockup + rum-previews" (fil-referenser, Storage-paths, status-fält) och Observability-punkterna utökade med hero-mockup-metrics + `HeroMockupActionButton`.
+- [x] `DB Schema Status`-raden uppdaterad med `hero_mockup_image_path/status/task_id/ai_cost_time_ms`, `generated_width_px/height_px` och `upscale_enabled` / `environment_previews_enabled` feature-flags.
+- [ ] Verifiera prod-deploy (manuell checkpunkt): ny migration körd, masters finns i cloud storage, env-variabler oförändrade — parkerat tills deploy körs.
+- [ ] Ev. flytta delad `verifyOrderOwnership` till bredare shared helper om fler actions kan dra nytta (ej blockerande — skippad).
 
-**Exit-kriterium:** Admin har full insyn i hero-mockup-pipeline, dokumentation uppdaterad, prod-ready. Typecheck + ESLint rent.
+**Exit-kriterium:** ✅ Typecheck + ESLint rent, admin har full insyn i hero-mockup-pipeline via dashboard + settings + order-detalj, retry-knappar gör samma sak som upscale-equivalenten, dokumentation speglar det nya flödet. Pre-merge cleanup komplett.
 
 ### Öppna frågor (kan lösas parallellt)
 
@@ -610,6 +613,8 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 - [ ] Vitest för validators + lib/actions
 - [ ] Playwright E2E genom create-flödet (mock checkout)
+- [x] **i18n-audit-script** — `scripts/i18n-audit.mjs` + `npm run i18n:audit`: scope-medveten scanner som verifierar att alla `t('...')`-referenser finns i båda `messages/{en,sv}.json`, plus driftkontroll (nycklar som bara finns i en locale). Exit code 1 vid fel → redo för CI-pipeline. (2026-04-22)
+- [ ] Koppla in `npm run i18n:audit` i CI (GitHub Actions pre-merge-check)
 - [ ] i18n-unused-keys-script i CI
 - [ ] ESLint-regel mot hårdkodade JSX-strängar
 
@@ -629,8 +634,8 @@ Mål: Gör det tydligt för kunden exakt hur deras canvastavla kommer se ut. Ök
 
 ## DB Schema Status
 
-Tables: profiles, styles (+ price_cents), products (+ faq JSONB), discount_codes, print_formats (canvas sizes + orientation), orders (+ product_id, customer_email, ai_model, ai_cost_time_ms, ai_task_id, discount_code_id, format_id, orientation, locale), generated_images, environment_scenes (name, image_path, is_active, sort_order), environment_previews (order_id, scene_id, image_path, ai_task_id, status, metadata), product_reviews (product_id, order_id, customer_name/email, rating, title, body, status, locale)
-Enums: order_status (created/processing/generated/paid/shipped), user_role (customer/admin), preview_status (pending/processing/success/fail), review_status (pending/approved/rejected)
+Tables: profiles, styles (+ price_cents), products (+ faq JSONB), discount_codes, print_formats (canvas sizes + orientation), orders (+ product_id, customer_email, ai_model, ai_cost_time_ms, ai_task_id, discount_code_id, format_id, orientation, locale, print_image_path, print_dpi, upscale_task_id, upscale_cost_time_ms, upscale_status, generated_width_px, generated_height_px, hero_mockup_image_path, hero_mockup_status, hero_mockup_task_id, hero_mockup_ai_cost_time_ms), generated_images, environment_scenes (name, image_path, is_active, sort_order), environment_previews (order_id, scene_id, image_path, ai_task_id, status, metadata), product_reviews (product_id, order_id, customer_name/email, rating, title, body, status, locale), app_settings (key, value JSONB — upscale_trigger, upscale_enabled, environment_previews_enabled)
+Enums: order_status (created/processing/generated/paid/shipped), user_role (customer/admin), preview_status (pending/processing/success/fail), review_status (pending/approved/rejected), upscale_status (pending/processing/success/fail/skipped)
 Functions: is_admin(), handle_updated_at(), handle_new_user()
 Storage: `images` bucket (10 MB limit, jpeg/png/webp) + `products/` folder for product images
 Auth flows: email/password login (admin only), session refresh via proxy, callback route for OAuth
